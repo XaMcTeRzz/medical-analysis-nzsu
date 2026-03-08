@@ -1347,10 +1347,31 @@ th.sortable:active {
 
                 <div class="error-overview-cards">
                     <div class="error-overview-card">
-                        <div class="card-icon">📊</div>
+                        <div class="card-icon">👥</div>
                         <div class="card-content">
                             <div class="card-value" id="summaryTotalDoctors">0</div>
                             <div class="card-subtitle">Всього лікарів</div>
+                        </div>
+                    </div>
+                    <div class="error-overview-card">
+                        <div class="card-icon">🧾</div>
+                        <div class="card-content">
+                            <div class="card-value" id="summaryTotalPatients">0</div>
+                            <div class="card-subtitle">Всього пацієнтів</div>
+                        </div>
+                    </div>
+                    <div class="error-overview-card">
+                        <div class="card-icon">💰</div>
+                        <div class="card-content">
+                            <div class="card-value" id="summaryTotalAmount">0,00</div>
+                            <div class="card-subtitle">Загальна сума (грн)</div>
+                        </div>
+                    </div>
+                    <div class="error-overview-card">
+                        <div class="card-icon">📊</div>
+                        <div class="card-content">
+                            <div class="card-value" id="summaryAvgAmount">0,00</div>
+                            <div class="card-subtitle">Середня сума (грн)</div>
                         </div>
                     </div>
                     <div class="error-overview-card error-card">
@@ -1361,10 +1382,10 @@ th.sortable:active {
                         </div>
                     </div>
                     <div class="error-overview-card warning-card">
-                        <div class="card-icon">📈</div>
+                        <div class="card-icon">📋</div>
                         <div class="card-content">
-                            <div class="card-value" id="summaryAvgErrors">0</div>
-                            <div class="card-subtitle">Середньо помилок на лікаря</div>
+                            <div class="card-value" id="summaryTotalRecords">0</div>
+                            <div class="card-subtitle">Кількість мед записів</div>
                         </div>
                     </div>
                 </div>
@@ -3350,9 +3371,17 @@ th.sortable:active {
             const avgErrors = doctors.length > 0 ? (totalErrors / doctors.length).toFixed(1) : 0;
 
             // Оновлюємо статистичні картки
+            const totalPatients = doctors.reduce((sum, d) => sum + d.totalPatients, 0);
+            const totalAmount = doctors.reduce((sum, d) => sum + d.totalAmount, 0);
+            const totalRecords = doctors.reduce((sum, d) => sum + (d.errors ? d.errors.length : 0), 0);
+            const avgAmount = doctors.length > 0 ? (totalAmount / doctors.length).toFixed(2) : '0.00';
+
             document.getElementById('summaryTotalDoctors').textContent = doctors.length;
+            document.getElementById('summaryTotalPatients').textContent = totalPatients;
+            document.getElementById('summaryTotalAmount').textContent = totalAmount.toFixed(2);
+            document.getElementById('summaryAvgAmount').textContent = avgAmount;
             document.getElementById('summaryTotalErrors').textContent = totalErrors;
-            document.getElementById('summaryAvgErrors').textContent = avgErrors;
+            document.getElementById('summaryTotalRecords').textContent = totalRecords;
 
             // Створюємо таблицю з лікарями та кількістю помилок
             const tbody = document.getElementById('summaryTableBody');
