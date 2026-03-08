@@ -1314,6 +1314,7 @@ th.sortable:active {
         <section class="results-section" id="resultsSection">
             <div class="tabs">
                 <button class="tab active" data-tab="overview">Загальний звіт</button>
+                <button class="tab" data-tab="summary">Загальна статистика</button>
                 <button class="tab" data-tab="errors">Аналіз помилок</button>
                 <button class="tab" data-tab="charts">Графіки</button>
                 <button class="tab" data-tab="details">Деталі по лікарям</button>
@@ -1334,6 +1335,54 @@ th.sortable:active {
                             </tr>
                         </thead>
                         <tbody id="mainTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-content" id="summary">
+                <div class="error-header">
+                    <h2>Загальна статистика помилок по ПІБ</h2>
+                    <p style="color: #4caf50; margin-bottom: 30px;">Кількість помилок для кожного лікаря в зручному форматі</p>
+                </div>
+
+                <div class="error-overview-cards">
+                    <div class="error-overview-card">
+                        <div class="card-icon">📊</div>
+                        <div class="card-content">
+                            <div class="card-value" id="summaryTotalDoctors">0</div>
+                            <div class="card-subtitle">Всього лікарів</div>
+                        </div>
+                    </div>
+                    <div class="error-overview-card error-card">
+                        <div class="card-icon">⚠️</div>
+                        <div class="card-content">
+                            <div class="card-value" id="summaryTotalErrors">0</div>
+                            <div class="card-subtitle">Всього помилок</div>
+                        </div>
+                    </div>
+                    <div class="error-overview-card warning-card">
+                        <div class="card-icon">📈</div>
+                        <div class="card-content">
+                            <div class="card-value" id="summaryAvgErrors">0</div>
+                            <div class="card-subtitle">Середньо помилок на лікаря</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="data-table modern-table full-width-table">
+                    <h3 style="text-align: center; margin-bottom: 20px; color: #2e7d32;">Список лікарів та кількість помилок</h3>
+                    <input type="text" class="modern-search" id="summarySearchBox" placeholder="Пошук лікаря за ПІБ...">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>№</th>
+                                <th>ПІБ лікаря</th>
+                                <th>Посада</th>
+                                <th>Кількість помилок</th>
+                                <th>Відсоток від загальної кількості</th>
+                            </tr>
+                        </thead>
+                        <tbody id="summaryTableBody"></tbody>
                     </table>
                 </div>
             </div>
@@ -1983,6 +2032,9 @@ th.sortable:active {
             
             // Показуємо таблицю
             showMainTable();
+            
+            // Показуємо загальну статистику
+            showSummary();
             
             // Показуємо аналіз помилок
             showErrorStats();
@@ -3173,6 +3225,11 @@ th.sortable:active {
                 content.classList.remove('active');
             });
             document.getElementById(tabName).classList.add('active');
+
+            // Оновлюємо вміст відповідно до вибраної вкладки
+            if (tabName === 'summary' && processedData) {
+                updateSummaryTab();
+            }
         }
 
         function showMessage(message, type) {
@@ -3283,6 +3340,63 @@ th.sortable:active {
                 totalAmount: results.reduce((sum, d) => sum + d.totalAmount, 0),
                 errors: errorData
             };
+        }
+
+        function showSummary() {
+            if (!processedData || !processedData.doctors) {
+                document.getElementById('summaryTableBody').innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 50px;">Немає даних для відображення</td></tr>';
+                return;
+            }
+
+            const doctors = processedData.doctors;
+            const totalErrors = doctors.reduce((sum, d) => sum + (d.errors ? d.errors.length : 0), 0);
+            const avgErrors = doctors.length > 0 ? (totalErrors / doctors.length).toFixed(1) : 0;
+
+            // Оновлюємо статистичні картки
+            document.getElementById('summaryTotalDoctors').textContent = doctors.length;
+            document.getElementById('summaryTotalErrors').textContent = totalErrors;
+            document.getElementById('summaryAvgErrors').textContent = avgErrors;
+
+            // Створюємо таблицю з лікарями та кількістю помилок
+            const tbody = document.getElementById('summaryTableBody');
+            tbody.innerHTML = '';
+
+            doctors.forEach((doctor, index) => {
+                const errorCount = doctor.errors ? doctor.errors.length : 0;
+                const errorPercentage = totalErrors > 0 ? ((errorCount / totalErrors) * 100).toFixed(2) : 0;
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td><strong>${doctor.doctorName}</strong></td>
+                    <td>${doctor.doctorPosition}</td>
+                    <td style="text-align: center; font-weight: bold; color: ${errorCount > 0 ? '#e74c3c' : '#27ae60'}">${errorCount}</td>
+                    <td style="text-align: center;">${errorPercentage}%</td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            // Додаємо пошук
+            const searchBox = document.getElementById('summarySearchBox');
+            searchBox.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const rows = tbody.getElementsByTagName('tr');
+                
+                Array.from(rows).forEach(row => {
+                    const doctorName = row.cells[1].textContent.toLowerCase();
+                    const position = row.cells[2].textContent.toLowerCase();
+                    
+                    if (doctorName.includes(searchTerm) || position.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        function updateSummaryTab() {
+            showSummary();
         }
 
     </script>
