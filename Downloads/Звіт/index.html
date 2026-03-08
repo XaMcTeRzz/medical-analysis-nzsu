@@ -1370,16 +1370,13 @@ th.sortable:active {
                 </div>
 
                 <div class="data-table modern-table full-width-table">
-                    <h3 style="text-align: center; margin-bottom: 20px; color: #2e7d32;">Список лікарів та кількість помилок</h3>
+                    <h3 style="text-align: center; margin-bottom: 20px; color: #2e7d32;">ПІБ лікарів та кількість помилок</h3>
                     <input type="text" class="modern-search" id="summarySearchBox" placeholder="Пошук лікаря за ПІБ...">
                     <table>
                         <thead>
                             <tr>
-                                <th>№</th>
-                                <th>ПІБ лікаря</th>
-                                <th>Посада</th>
-                                <th>Кількість помилок</th>
-                                <th>Відсоток від загальної кількості</th>
+                                <th style="width: 70%;">ПІБ лікарів</th>
+                                <th style="width: 30%;">Кількість помилок</th>
                             </tr>
                         </thead>
                         <tbody id="summaryTableBody"></tbody>
@@ -3361,17 +3358,13 @@ th.sortable:active {
             const tbody = document.getElementById('summaryTableBody');
             tbody.innerHTML = '';
 
-            doctors.forEach((doctor, index) => {
+            doctors.forEach((doctor) => {
                 const errorCount = doctor.errors ? doctor.errors.length : 0;
-                const errorPercentage = totalErrors > 0 ? ((errorCount / totalErrors) * 100).toFixed(2) : 0;
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${index + 1}</td>
                     <td><strong>${doctor.doctorName}</strong></td>
-                    <td>${doctor.doctorPosition}</td>
                     <td style="text-align: center; font-weight: bold; color: ${errorCount > 0 ? '#e74c3c' : '#27ae60'}">${errorCount}</td>
-                    <td style="text-align: center;">${errorPercentage}%</td>
                 `;
                 tbody.appendChild(row);
             });
@@ -3383,10 +3376,9 @@ th.sortable:active {
                 const rows = tbody.getElementsByTagName('tr');
                 
                 Array.from(rows).forEach(row => {
-                    const doctorName = row.cells[1].textContent.toLowerCase();
-                    const position = row.cells[2].textContent.toLowerCase();
+                    const doctorName = row.cells[0].textContent.toLowerCase();
                     
-                    if (doctorName.includes(searchTerm) || position.includes(searchTerm)) {
+                    if (doctorName.includes(searchTerm)) {
                         row.style.display = '';
                     } else {
                         row.style.display = 'none';
