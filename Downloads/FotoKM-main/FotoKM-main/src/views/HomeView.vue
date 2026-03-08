@@ -48,9 +48,11 @@ const deleteTrip = async (id: number) => {
   }
 };
 
-const formatDate = (dateStr: string) => {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
+const formatDate = (timestamp: number) => {
+  const date = new Date(timestamp);
+  const datePart = date.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
+  const timePart = date.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
+  return `${datePart}, ${timePart}`;
 };
 
 const openTripDetail = (trip: TripEntry) => {
@@ -149,7 +151,7 @@ const closeZoom = () => {
                   <div class="p-1.5 sm:p-2 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg">
                     <Calendar class="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                   </div>
-                  <span class="text-slate-100 font-bold text-sm sm:text-base md:text-lg drop-shadow">{{ formatDate(trip.date || '') }}</span>
+                  <span class="text-slate-100 font-bold text-sm sm:text-base md:text-lg drop-shadow">{{ formatDate(trip.timestamp) }}</span>
                 </div>
                 
                 <p v-if="trip.description" class="text-slate-300 text-xs sm:text-sm font-medium line-clamp-2 mb-2 sm:mb-3">
@@ -178,8 +180,7 @@ const closeZoom = () => {
 
       <div v-if="sortedTrips.length > 0" class="mt-6 sm:mt-8 text-center">
         <div class="inline-flex items-center space-x-2 bg-slate-900/60 backdrop-blur-xl text-slate-400 py-2 sm:py-2.5 px-4 sm:px-5 rounded-2xl border border-emerald-500/20">
-          <span class="font-semibold text-sm sm:text-base">{{ sortedTrips.length }} запис</span>
-          <span v-if="sortedTrips.length > 1" class="font-semibold text-sm sm:text-base">ів</span>
+          <span class="font-semibold text-sm sm:text-base">{{ sortedTrips.length }} {{ sortedTrips.length === 1 ? 'запис' : sortedTrips.length >= 2 && sortedTrips.length <= 4 ? 'записи' : 'записів' }}</span>
           <span class="mx-1">·</span>
           <Sparkles class="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400" />
         </div>

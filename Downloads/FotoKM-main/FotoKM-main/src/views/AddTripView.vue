@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { Camera, Save, Mic, MicOff, ChevronLeft, Loader2, Sparkles, Zap, Image as ImageIcon } from 'lucide-vue-next';
+import { Camera, Save, Mic, MicOff, ChevronLeft, Loader2, Sparkles, Zap, Image as ImageIcon, Wifi, WifiOff, Download } from 'lucide-vue-next';
 import { db } from '../db';
 import { sanitizeHtml } from '../utils';
 
@@ -13,6 +13,18 @@ const description = ref('');
 const isListening = ref(false);
 const isProcessingPhoto = ref(false);
 const recognition = ref<any>(null);
+const silenceTimer = ref<NodeJS.Timeout | null>(null);
+const offlineMode = ref(false);
+const voskModel = ref<any>(null);
+const isVoskLoading = ref(false);
+
+const handleOnlineStatusChange = () => {
+  if (navigator.onLine) {
+    offlineMode.value = false;
+  } else {
+    offlineMode.value = true;
+  }
+};
 
 onMounted(() => {
   const photoParam = route.query.photo as string;
@@ -23,6 +35,18 @@ onMounted(() => {
   } else if (!route.query.fromCamera) {
     triggerCamera();
   }
+  
+  window.addEventListener('online', handleOnlineStatusChange);
+  window.addEventListener('offline', handleOnlineStatusChange);
+  
+  if (!navigator.onLine) {
+    offlineMode.value = true;
+  }
+});
+
+onUnmounted(() => {
+  window.removeEventListener('online', handleOnlineStatusChange);
+  window.removeEventListener('offline', handleOnlineStatusChange);
 });
 
 const triggerCamera = () => {
@@ -36,37 +60,281 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
   const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
   recognition.value = new SpeechRecognition();
   recognition.value.continuous = false;
-  recognition.value.lang = 'uk-UA'; 
-  recognition.value.interimResults = false;
+  recognition.value.lang = 'uk-UA';
+  recognition.value.interimResults = true;
+  recognition.value.maxAlternatives = 1;
+
+  let finalTranscript = '';
+
+  const stopListening = () => {
+    isListening.value = false;
+    if (silenceTimer.value) {
+      clearTimeout(silenceTimer.value);
+      silenceTimer.value = null;
+    }
+    if (recognition.value) {
+      recognition.value.stop();
+    }
+  };
+
+  const resetSilenceTimer = () => {
+    if (silenceTimer.value) {
+      clearTimeout(silenceTimer.value);
+    }
+    silenceTimer.value = setTimeout(() => {
+      if (isListening.value) {
+        stopListening();
+      }
+    }, 2000);
+  };
+
+  recognition.value.onstart = () => {
+    finalTranscript = '';
+  };
 
   recognition.value.onresult = (event: any) => {
-    const transcript = event.results[0][0].transcript;
-    description.value += (description.value ? ' ' : '') + transcript;
-    isListening.value = false;
+    resetSilenceTimer();
+    
+    let interimTranscript = '';
+    
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const transcript = event.results[i][0].transcript;
+      
+      if (event.results[i].isFinal) {
+        finalTranscript += transcript;
+      } else {
+        interimTranscript += transcript;
+      }
+    }
+    
+    if (finalTranscript) {
+      description.value += (description.value ? ' ' : '') + finalTranscript;
+      finalTranscript = '';
+    }
   };
 
   recognition.value.onerror = (event: any) => {
     console.error('Speech recognition error', event.error);
-    isListening.value = false;
+    
+    if (event.error === 'network') {
+      if (offlineMode.value) {
+        alert('Офлайн розпізнавання наразі недоступне. Використовуйте Chrome та завантажте модель.');
+      } else {
+        alert('Для розпізнавання голосу потрібен інтернет. Спробуйте пізніше.');
+      }
+      stopListening();
+    } else if (event.error === 'not-allowed') {
+      alert('Дозвольте доступ до мікрофона в налаштуваннях браузера.');
+      stopListening();
+    } else if (event.error === 'no-speech') {
+      if (isListening.value) {
+        stopListening();
+      }
+    } else {
+      stopListening();
+    }
   };
   
   recognition.value.onend = () => {
-    isListening.value = false;
+    if (silenceTimer.value) {
+      clearTimeout(silenceTimer.value);
+      silenceTimer.value = null;
+    }
   };
 }
 
-const toggleSpeech = () => {
-  if (!recognition.value) {
+const checkInternetConnection = () => {
+  if (!navigator.onLine) {
+    return false;
+  }
+  return true;
+};
+
+const floatTo16BitPCM = (float32Array: Float32Array): Int16Array => {
+  const int16Array = new Int16Array(float32Array.length);
+  for (let i = 0; i < float32Array.length; i++) {
+    const s = Math.max(-1, Math.min(1, float32Array[i]));
+    int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+  }
+  return int16Array;
+};
+
+const initVosk = async () => {
+  try {
+    const { model } = await import('vosk-browser');
+    
+    const modelUrl = '/model/vosk-model-uk-v3-small/';
+    
+    voskModel.value = await new model({
+      modelUrl,
+      options: {
+        sampleRate: 48000
+      }
+    });
+    
+    return true;
+  } catch (e) {
+    console.error('Failed to load Vosk:', e);
+    return false;
+  }
+};
+
+const startOfflineRecognition = async () => {
+  if (!voskModel.value) {
+    isVoskLoading.value = true;
+    const loaded = await initVosk();
+    isVoskLoading.value = false;
+    
+    if (!loaded) {
+      alert('Не вдалося завантажити модель для оффлайн розпізнавання. Спробуйте пізніше.');
+      return null;
+    }
+  }
+  
+  try {
+    const recognizer = await voskModel.value.createRecognizer();
+    
+    const audioContext = new AudioContext({ sampleRate: 48000 });
+    const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const source = audioContext.createMediaStreamSource(mediaStream);
+    const processor = audioContext.createScriptProcessor(4096, 1, 1);
+    
+    source.connect(processor);
+    
+    let lastSpeechTime = Date.now();
+    let finalText = '';
+    
+    processor.onaudioprocess = (e: any) => {
+      if (!isListening.value) {
+        source.disconnect();
+        processor.disconnect();
+        audioContext.close();
+        mediaStream.getTracks().forEach(track => track.stop());
+        return;
+      }
+      
+      const inputData = e.inputBuffer.getChannelData(0);
+      const int16Data = floatTo16BitPCM(inputData);
+      
+      recognizer.acceptWaveform(int16Data);
+      
+      const result = recognizer.result();
+      
+      if (result && result.result && result.result.length > 0) {
+        const text = result.result.map((r: any) => r.word).join(' ');
+        if (text && text !== finalText) {
+          finalText = text;
+          description.value += (description.value ? ' ' : '') + text;
+          lastSpeechTime = Date.now();
+          resetSilenceTimer();
+        }
+      }
+    };
+    
+    return { recognizer, mediaStream, audioContext, source, processor };
+  } catch (e) {
+    console.error('Failed to start offline recognition:', e);
+    isListening.value = false;
+    return null;
+  }
+};
+
+let offlineRecognition: any = null;
+
+const toggleSpeech = async () => {
+  if (!recognition.value && !offlineMode.value) {
     alert('Ваш браузер не підтримує голосове введення.');
     return;
   }
   
   if (isListening.value) {
-    recognition.value.stop();
+    stopListening();
   } else {
     isListening.value = true;
-    recognition.value.start();
+    
+    if (offlineMode.value) {
+      offlineRecognition = await startOfflineRecognition();
+      if (!offlineRecognition) {
+        isListening.value = false;
+      }
+    } else {
+      if (!checkInternetConnection()) {
+        offlineMode.value = true;
+        offlineRecognition = await startOfflineRecognition();
+        if (!offlineRecognition) {
+          isListening.value = false;
+        }
+        return;
+      }
+      
+      setTimeout(() => {
+        if (isListening.value) {
+          try {
+            recognition.value.start();
+          } catch (e) {
+            console.error('Failed to start recognition:', e);
+            isListening.value = false;
+          }
+        }
+      }, 100);
+    }
   }
+};
+
+const stopListening = () => {
+  isListening.value = false;
+  if (silenceTimer.value) {
+    clearTimeout(silenceTimer.value);
+    silenceTimer.value = null;
+  }
+  
+  if (offlineMode.value && offlineRecognition) {
+    try {
+      if (offlineRecognition.recognizer) {
+        offlineRecognition.recognizer.free();
+      }
+      if (offlineRecognition.source) {
+        offlineRecognition.source.disconnect();
+      }
+      if (offlineRecognition.processor) {
+        offlineRecognition.processor.disconnect();
+      }
+      if (offlineRecognition.audioContext) {
+        offlineRecognition.audioContext.close();
+      }
+      if (offlineRecognition.mediaStream) {
+        offlineRecognition.mediaStream.getTracks().forEach((track: any) => track.stop());
+      }
+    } catch (e) {
+      console.error('Error stopping offline recognition:', e);
+    }
+    offlineRecognition = null;
+  } else if (recognition.value) {
+    try {
+      recognition.value.stop();
+    } catch (e) {
+      console.error('Error stopping recognition:', e);
+    }
+  }
+};
+
+const resetSilenceTimer = () => {
+  if (silenceTimer.value) {
+    clearTimeout(silenceTimer.value);
+  }
+  silenceTimer.value = setTimeout(() => {
+    if (isListening.value) {
+      stopListening();
+    }
+  }, 2000);
+};
+
+const toggleOfflineMode = () => {
+  if (isListening.value) {
+    alert('Зупиніть запис перед перемиканням режиму.');
+    return;
+  }
+  offlineMode.value = !offlineMode.value;
 };
 
 const handleFileChange = (event: Event) => {
@@ -252,7 +520,27 @@ const goBack = () => {
               <div class="absolute inset-0 bg-red-500 rounded-full blur-lg opacity-50 animate-pulse"></div>
               <div class="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-400 rounded-full relative"></div>
             </div>
-            <span class="font-semibold text-xs sm:text-sm">Слухаю... говоріть українською</span>
+            <span class="font-semibold text-xs sm:text-sm">Слухаю... говоріть українською (авто-стоп після 2 сек тиші)</span>
+          </div>
+          
+          <div class="mt-3 flex items-center space-x-2">
+            <div class="p-2 rounded-xl transition-all duration-300" :class="offlineMode ? 'bg-amber-500/20' : 'bg-emerald-500/20'">
+              <WifiOff v-if="offlineMode" class="w-4 h-4 text-amber-400" />
+              <Wifi v-else class="w-4 h-4 text-emerald-400" />
+            </div>
+            <div class="flex flex-col">
+              <span class="text-xs sm:text-sm font-semibold" :class="offlineMode ? 'text-amber-400' : 'text-emerald-400'">
+                {{ offlineMode ? 'Оффлайн режим' : 'Онлайн режим' }}
+              </span>
+              <span class="text-[10px] sm:text-xs text-slate-500">
+                {{ offlineMode ? 'Працює без інтернету' : 'Потрібен інтернет' }}
+              </span>
+            </div>
+          </div>
+          
+          <div v-if="isVoskLoading" class="mt-3 flex items-center space-x-2 bg-amber-500/20 backdrop-blur-sm text-amber-400 py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl border border-amber-500/30">
+            <Download class="w-4 h-4 sm:w-5 sm:h-5 animate-bounce" />
+            <span class="font-semibold text-xs sm:text-sm">Завантаження моделі розпізнавання (~20MB)...</span>
           </div>
         </div>
 

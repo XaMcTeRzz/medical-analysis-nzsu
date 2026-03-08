@@ -1,0 +1,3142 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Аналіз медичних даних НСЗУ by XaMcTeR</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 50%, #f5f5f5 100%);
+            min-height: 100vh;
+            color: #212121;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            border: 2px solid #e0e0e0;
+        }
+
+        h1 {
+            color: #212121;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .subtitle {
+            color: #616161;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+
+        .upload-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 2px solid #e0e0e0;
+        }
+
+        .upload-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .upload-box {
+            background: rgba(245, 245, 245, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border: 2px solid #e0e0e0;
+        }
+
+        .upload-area {
+            border: 3px dashed #757575;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.8);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .upload-area:hover {
+            border-color: #424242;
+            background: rgba(245, 245, 245, 0.9);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .upload-area.dragover {
+            border-color: #4caf50;
+            background: rgba(200, 230, 201, 0.3);
+        }
+
+        .upload-area.uploaded {
+            border-color: #4caf50;
+            background: rgba(200, 230, 201, 0.3);
+        }
+
+        .upload-area.uploaded .upload-icon {
+            color: #4caf50;
+        }
+
+        .upload-area.uploaded .upload-text {
+            color: #2e7d32;
+            font-weight: bold;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+            color: #757575;
+            transition: color 0.3s ease;
+        }
+
+        .upload-text {
+            font-size: 1.1em;
+            color: #212121;
+            margin-bottom: 10px;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .upload-hint {
+            color: #616161;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .file-list {
+            margin-top: 20px;
+        }
+
+        .file-item {
+            background: rgba(245, 245, 245, 0.8);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e0e0e0;
+        }
+
+        .file-name {
+            font-weight: 500;
+            color: #212121;
+        }
+
+        .file-size {
+            color: #616161;
+            font-size: 0.9em;
+        }
+
+        .remove-file {
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .remove-file:hover {
+            background: #d32f2f;
+        }
+
+        .process-button {
+            background: linear-gradient(135deg, #4caf50, #45a049);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            padding: 20px 40px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.3);
+        }
+
+        .process-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(76, 175, 80, 0.4);
+        }
+
+        .process-button:disabled {
+            background: linear-gradient(135deg, #9e9e9e, #757575);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .results-section {
+            display: none;
+        }
+
+        .tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px 15px 0 0;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 20px;
+            background: rgba(245, 245, 245, 0.8);
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            color: #212121;
+            border-right: 1px solid #e0e0e0;
+        }
+
+        .tab:last-child {
+            border-right: none;
+        }
+
+        .tab:hover {
+            background: rgba(224, 224, 224, 0.5);
+        }
+
+        .tab.active {
+            background: rgba(255, 255, 255, 0.9);
+            color: #1976d2;
+            border-bottom: 3px solid #1976d2;
+        }
+
+        .tab-content {
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 0 0 20px 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 2px solid #e0e0e0;
+            border-top: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(52, 152, 219, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .data-table {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1em;
+            margin-bottom: 20px;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #2c3e50;
+    position: sticky;
+    top: 0;
+}
+
+th.sortable {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+    position: relative;
+}
+
+th.sortable:hover {
+    background: #e9ecef;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+th.sortable:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .doctor-selector {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1em;
+            margin-bottom: 20px;
+            transition: border-color 0.3s ease;
+        }
+
+        .doctor-selector:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .doctor-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .export-button {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .export-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(52, 152, 219, 0.3);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #e74c3c;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .success-message {
+            background: #27ae60;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .error-details-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .error-details-section h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .error-count-badge {
+            background: #e74c3c;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .error-list {
+            max-height: 100px;
+            overflow-y: auto;
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+
+        .error-item {
+            background: #fdf2f2;
+            border-left: 3px solid #e74c3c;
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 3px;
+        }
+
+        /* Нові стилі для сторінки помилок */
+        .error-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #e8f5e9;
+            background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(232, 245, 233, 0.9));
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+            border: 2px solid #c8e6c9;
+        }
+
+        .error-header h2 {
+            color: #2e7d32;
+            font-size: 1.3em;
+            margin-bottom: 10px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            width: 100%;
+            text-align: center;
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 2px solid #a5d6a7;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .error-header p {
+            color: #4caf50;
+            font-size: 0.7em;
+            font-weight: 400;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.5;
+            width: 100%;
+            text-align: center;
+            background: linear-gradient(135deg, rgba(232, 245, 233, 0.8), rgba(200, 230, 201, 0.8));
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #c8e6c9;
+        }
+
+        .error-controls {
+            margin-bottom: 50px;
+        }
+
+        .control-section {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .selector-label {
+            display: block;
+            font-size: 0.85em;
+            font-weight: 600;
+            color: #2e7d32;
+            margin-bottom: 20px;
+            text-align: center;
+            width: 100%;
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 2px solid #a5d6a7;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            letter-spacing: 0.5px;
+        }
+
+        .modern-selector {
+            width: 100%;
+            padding: 18px 25px;
+            border: 3px solid #c8e6c9;
+            border-radius: 16px;
+            font-size: 0.8925em;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.9);
+            color: #2e7d32;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .modern-selector:focus {
+            outline: none;
+            border-color: #4caf50;
+            box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .modern-selector:hover {
+            border-color: #a5d6a7;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+        }
+
+        .error-overview-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .error-overview-card {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid #dee2e6;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .error-overview-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+            border-color: #adb5bd;
+        }
+
+        .error-overview-card.error-card {
+            border-left: 4px solid #6c757d;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        }
+
+        .error-overview-card.warning-card {
+            border-left: 4px solid #6c757d;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        }
+
+        .card-icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+            opacity: 0.6;
+            display: none;
+        }
+
+        .card-content {
+            text-align: center;
+        }
+
+        .card-title {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: #495057;
+            margin-bottom: 8px;
+        }
+
+        .card-value {
+            font-size: 1.9em;
+            font-weight: 800;
+            color: #495057;
+            line-height: 1.2;
+            text-shadow: 0 2px 4px rgba(73, 80, 87, 0.2);
+        }
+
+        .card-subtitle {
+            color: #6c757d;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .full-width-table {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+            border: 2px solid #c8e6c9;
+        }
+
+        .full-width-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .full-width-table th {
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            padding: 20px;
+            text-align: left;
+            font-weight: 700;
+            color: #2e7d32;
+            font-size: 1.1em;
+            border-bottom: 2px solid #a5d6a7;
+            letter-spacing: 0.5px;
+        }
+
+        .full-width-table th:nth-child(1) {
+            text-align: center;
+            width: 3%;
+            font-weight: 600;
+            padding: 20px 2px;
+            background: linear-gradient(135deg, #a5d6a7, #81c784);
+            font-size: 0.8em;
+        }
+
+        .full-width-table th:nth-child(2),
+        .full-width-table th:nth-child(3) {
+            text-align: center;
+            width: 25%;
+            font-weight: 600;
+            padding: 20px 10px;
+            background: linear-gradient(135deg, #c8e6c9, #a5d6a7);
+        }
+
+        .full-width-table th:nth-child(4) {
+            text-align: center;
+            width: 45%;
+            padding-right: 20px;
+        }
+
+        .full-width-table td {
+            padding: 18px 20px;
+            border-bottom: 1px solid #e8f5e9;
+            font-size: 1em;
+            color: #2e7d32;
+        }
+
+        .full-width-table td:nth-child(1) {
+            text-align: center;
+            vertical-align: middle;
+            font-weight: 600;
+            width: 3%;
+            padding: 18px 2px;
+            background: rgba(165, 214, 167, 0.3);
+            font-size: 0.75em;
+        }
+
+        .full-width-table td:nth-child(2),
+        .full-width-table td:nth-child(3) {
+            text-align: center;
+            vertical-align: middle;
+            font-weight: 500;
+            width: 25%;
+            word-wrap: break-word;
+            word-break: break-all;
+            min-height: 80px;
+            display: table-cell;
+            padding: 18px 8px;
+            font-family: 'Courier New', monospace;
+            background: rgba(232, 245, 233, 0.3);
+            font-size: 0.85em;
+            line-height: 1.2;
+        }
+
+        .full-width-table td:nth-child(4) {
+            text-align: right;
+            vertical-align: middle;
+            width: 45%;
+            padding-right: 20px;
+            font-size: 0.9em;
+            word-wrap: break-word;
+            line-height: 1.3;
+        }
+
+        .full-width-table tr:hover {
+            background: rgba(232, 245, 233, 0.5);
+        }
+
+        .full-width-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .full-width-table code {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            border: 1px solid #c8e6c9;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: all;
+            font-weight: 600;
+            min-width: 100px;
+            display: inline-block;
+            text-align: center;
+            word-break: break-all;
+        }
+
+        .full-width-table code:hover {
+            background: #c8e6c9;
+            transform: scale(1.05);
+        }
+
+        .error-item {
+            background: linear-gradient(135deg, rgba(244, 67, 54, 0.08), rgba(255, 255, 255, 0.9));
+            border-left: 4px solid #f44336;
+            padding: 8px 12px;
+            margin-bottom: 4px;
+            border-radius: 8px;
+            color: #d32f2f;
+            font-weight: 500;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: center;
+        }
+
+        .details-item {
+            background: linear-gradient(135deg, rgba(255, 152, 0, 0.08), rgba(255, 255, 255, 0.9));
+            border-left: 4px solid #ff9800;
+            padding: 6px 10px;
+            margin-top: 4px;
+            border-radius: 8px;
+            color: #e65100;
+            font-weight: 500;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: center;
+        }
+
+        .error-content-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .error-chart-section h3 {
+            color: #2e7d32;
+            margin-bottom: 25px;
+            font-size: 1.4em;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            text-align: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 2px solid #a5d6a7;
+            letter-spacing: 0.5px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .error-summary {
+            background: linear-gradient(135deg, rgba(232,245,233,0.9), rgba(255,255,255,0.9));
+            border-radius: 16px;
+            padding: 25px;
+            margin-top: 25px;
+            border: 2px solid #c8e6c9;
+        }
+
+        .error-summary h4 {
+            color: #2e7d32;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            font-weight: 700;
+            width: 100%;
+            text-align: center;
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 2px solid #a5d6a7;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            letter-spacing: 0.5px;
+        }
+
+        .summary-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #c8e6c9;
+        }
+
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+
+        .summary-label {
+            color: #4caf50;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        .summary-value {
+            color: #2e7d32;
+            font-weight: 700;
+            font-size: 1em;
+            max-width: 60%;
+            text-align: right;
+        }
+
+        .full-stats-section {
+            margin-top: 50px;
+            padding-top: 40px;
+            border-top: 3px solid #c8e6c9;
+        }
+
+        .toggle-stats-btn {
+            background: linear-gradient(135deg, #4caf50, #388e3c);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            padding: 18px 35px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 25px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.3);
+        }
+
+        .toggle-stats-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(76, 175, 80, 0.4);
+        }
+
+        .modern-search {
+            width: 100%;
+            padding: 18px 25px;
+            border: 3px solid #c8e6c9;
+            border-radius: 16px;
+            font-size: 1.1em;
+            margin-bottom: 25px;
+            transition: all 0.3s ease;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #2e7d32;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .modern-search:focus {
+            outline: none;
+            border-color: #4caf50;
+            box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.15);
+        }
+
+        .no-selection-message {
+            text-align: center;
+            padding: 80px 30px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(232,245,233,0.9));
+            border-radius: 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+            border: 2px solid #c8e6c9;
+        }
+
+        .message-icon {
+            font-size: 5em;
+            margin-bottom: 25px;
+            opacity: 0.7;
+            display: none; /* Ховаємо емодзі */
+        }
+
+        .message-text h3 {
+            color: #2e7d32;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            font-weight: 700;
+            width: 100%;
+            text-align: center;
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 2px solid #a5d6a7;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            letter-spacing: 0.5px;
+        }
+
+        .message-text p {
+            color: #4caf50;
+            font-size: 0.95em;
+            line-height: 1.6;
+            max-width: 500px;
+            margin: 0 auto;
+            width: 100%;
+            text-align: center;
+            background: linear-gradient(135deg, rgba(232, 245, 233, 0.8), rgba(200, 230, 201, 0.8));
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #c8e6c9;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .tab {
+                border-bottom: 1px solid #ddd;
+            }
+
+            .tab.active {
+                border-bottom: 3px solid #3498db;
+            }
+
+            .upload-container {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .upload-area {
+                min-height: 140px;
+                padding: 20px;
+            }
+
+            .upload-icon {
+                font-size: 2em;
+            }
+
+            .upload-text {
+                font-size: 1em;
+            }
+
+            .upload-hint {
+                font-size: 0.8em;
+            }
+
+            .error-content-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .error-overview-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .error-header h2 {
+                font-size: 1.8em;
+            }
+
+            .selector-label {
+                font-size: 1em;
+            }
+
+            .modern-selector {
+                font-size: 1em;
+                padding: 12px 15px;
+            }
+
+            .card-icon {
+                font-size: 2em;
+                margin-right: 15px;
+            }
+
+            .card-title {
+                font-size: 1.1em;
+            }
+
+            .card-value {
+                font-size: 1.5em;
+            }
+
+            .no-selection-message {
+                padding: 40px 15px;
+            }
+
+            .message-icon {
+                font-size: 3em;
+            }
+
+            .message-text h3 {
+                font-size: 1.3em;
+            }
+
+            .message-text p {
+                font-size: 1em;
+            }
+        }
+    </style>
+    
+    <!-- Адаптивні стилі -->
+    <style>
+        /* Для планшетів (768px - 1024px) */
+        @media screen and (max-width: 1024px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .full-width-table th:nth-child(1) {
+                width: 5%;
+                font-size: 0.75em;
+                padding: 15px 2px;
+            }
+            
+            .full-width-table th:nth-child(2),
+            .full-width-table th:nth-child(3) {
+                width: 28%;
+                font-size: 0.9em;
+                padding: 15px 8px;
+            }
+            
+            .full-width-table th:nth-child(4) {
+                width: 39%;
+                font-size: 0.9em;
+            }
+            
+            .full-width-table td:nth-child(1) {
+                width: 5%;
+                font-size: 0.7em;
+                padding: 15px 2px;
+            }
+            
+            .full-width-table td:nth-child(2),
+            .full-width-table td:nth-child(3) {
+                width: 28%;
+                font-size: 0.8em;
+                padding: 15px 6px;
+            }
+            
+            .full-width-table td:nth-child(4) {
+                width: 39%;
+                font-size: 0.85em;
+                padding-right: 15px;
+            }
+        }
+        
+        /* Для мобільних пристроїв (480px - 768px) */
+        @media screen and (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            h1 {
+                font-size: 1.5em;
+            }
+            
+            .full-width-table {
+                font-size: 0.8em;
+            }
+            
+            .full-width-table th:nth-child(1) {
+                width: 8%;
+                font-size: 0.7em;
+                padding: 10px 1px;
+            }
+            
+            .full-width-table th:nth-child(2),
+            .full-width-table th:nth-child(3) {
+                width: 30%;
+                font-size: 0.8em;
+                padding: 10px 5px;
+            }
+            
+            .full-width-table th:nth-child(4) {
+                width: 32%;
+                font-size: 0.8em;
+                padding-right: 10px;
+            }
+            
+            .full-width-table td:nth-child(1) {
+                width: 8%;
+                font-size: 0.65em;
+                padding: 10px 1px;
+            }
+            
+            .full-width-table td:nth-child(2),
+            .full-width-table td:nth-child(3) {
+                width: 30%;
+                font-size: 0.75em;
+                padding: 10px 3px;
+            }
+            
+            .full-width-table td:nth-child(4) {
+                width: 32%;
+                font-size: 0.8em;
+                padding-right: 10px;
+                line-height: 1.1;
+            }
+            
+            .full-width-table code {
+                padding: 4px 6px;
+                font-size: 0.8em;
+                min-width: 60px;
+            }
+            
+            .error-item {
+                padding: 6px 8px;
+                font-size: 0.9em;
+                white-space: normal;
+                line-height: 1.1;
+            }
+        }
+        
+        /* Для дуже малих екранів (до 480px) */
+        @media screen and (max-width: 480px) {
+            .container {
+                padding: 5px;
+            }
+            
+            h1 {
+                font-size: 1.2em;
+            }
+            
+            .full-width-table {
+                font-size: 0.7em;
+            }
+            
+            .full-width-table th:nth-child(1) {
+                width: 10%;
+                font-size: 0.65em;
+                padding: 8px 1px;
+            }
+            
+            .full-width-table th:nth-child(2),
+            .full-width-table th:nth-child(3) {
+                width: 32%;
+                font-size: 0.75em;
+                padding: 8px 3px;
+            }
+            
+            .full-width-table th:nth-child(4) {
+                width: 26%;
+                font-size: 0.75em;
+                padding-right: 5px;
+            }
+            
+            .full-width-table td:nth-child(1) {
+                width: 10%;
+                font-size: 0.6em;
+                padding: 8px 1px;
+            }
+            
+            .full-width-table td:nth-child(2),
+            .full-width-table td:nth-child(3) {
+                width: 32%;
+                font-size: 0.7em;
+                padding: 8px 2px;
+            }
+            
+            .full-width-table td:nth-child(4) {
+                width: 26%;
+                font-size: 0.75em;
+                padding-right: 5px;
+                line-height: 1.0;
+            }
+            
+            .full-width-table code {
+                padding: 3px 4px;
+                font-size: 0.75em;
+                min-width: 50px;
+            }
+            
+            .error-item {
+                padding: 4px 6px;
+                font-size: 0.8em;
+                white-space: normal;
+                line-height: 1.0;
+            }
+            
+            .details-item {
+                padding: 3px 5px;
+                font-size: 0.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Аналіз медичних даних НСЗУ</h1>
+            <p class="subtitle">by XaMcTeR</p>
+        </header>
+
+        <section class="upload-section">
+            <div class="upload-container">
+                <div class="upload-box">
+                    <div class="upload-area" id="uploadArea1">
+                        <div class="upload-icon">�</div>
+                        <div class="upload-text">Звіт з розшифровкою від НСЗУ</div>
+                        <div class="upload-hint">Файл: Січень повна.xlsx</div>
+                        <input type="file" id="fileInput1" class="file-input" accept=".xlsx,.xls">
+                    </div>
+                </div>
+                
+                <div class="upload-box">
+                    <div class="upload-area" id="uploadArea2">
+                        <div class="upload-icon"></div>
+                        <div class="upload-text">Розшифровка пацієнтів включених до звіту (Сума грн)</div>
+                        <div class="upload-hint">Файл: Звіт_по_включеним_тижням_по_пацієнтам_СІЧЕНЬ.xlsx</div>
+                        <input type="file" id="fileInput2" class="file-input" accept=".xlsx,.xls">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="file-list" id="fileList"></div>
+            
+            <button class="process-button" id="processButton" disabled>
+                Обробити дані
+            </button>
+        </section>
+
+        <section class="results-section" id="resultsSection">
+            <div class="tabs">
+                <button class="tab active" data-tab="overview">Загальний звіт</button>
+                <button class="tab" data-tab="errors">Аналіз помилок</button>
+                <button class="tab" data-tab="charts">Графіки</button>
+                <button class="tab" data-tab="details">Деталі по лікарям</button>
+                <button class="tab" data-tab="export">Завантаження</button>
+            </div>
+
+            <div class="tab-content active" id="overview">
+                <div class="stats-grid" id="statsGrid"></div>
+                <input type="text" class="search-box" id="searchBox" placeholder="Пошук лікаря за ПІБ...">
+                <div class="data-table">
+                    <table id="mainTable">
+                        <thead>
+                            <tr>
+                                <th class="sortable" data-sort="doctorName" onclick="sortTable('doctorName')">ПІБ лікаря ↕</th>
+                                <th class="sortable" data-sort="doctorPosition" onclick="sortTable('doctorPosition')">Посада ↕</th>
+                                <th class="sortable" data-sort="totalPatients" onclick="sortTable('totalPatients')">Кількість пацієнтів ↕</th>
+                                <th class="sortable" data-sort="totalAmount" onclick="sortTable('totalAmount')">Сума до сплати (грн) ↕</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mainTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-content" id="errors">
+                <div class="error-header">
+                    <h2>Аналіз помилок у звітах НСЗУ</h2>
+                    <p style="color: #4caf50; margin-bottom: 30px;">Моніторинг помилок по лікарям з детальною інформацією про кожну помилку</p>
+                </div>
+
+                <div class="error-controls">
+                    <div class="control-section">
+                        <label for="errorDoctorSelector" class="selector-label">Оберіть лікаря для аналізу помилок:</label>
+                        <select class="doctor-selector modern-selector" id="errorDoctorSelector">
+                            <option value="">Оберіть лікаря...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Секція що показується тільки після вибору лікаря -->
+                <div id="errorAnalysisSection" style="display: none;">
+                    <div class="error-overview-cards">
+                        <div class="error-overview-card">
+                            <div class="card-icon"></div>
+                            <div class="card-content">
+                                <div class="card-title" id="selectedDoctorName">Лікар</div>
+                                <div class="card-subtitle">Обраний фахівець</div>
+                            </div>
+                        </div>
+                        <div class="error-overview-card error-card">
+                            <div class="card-icon"></div>
+                            <div class="card-content">
+                                <div class="card-value" id="totalErrorCount">0</div>
+                                <div class="card-subtitle">Всього помилок</div>
+                            </div>
+                        </div>
+                        <div class="error-overview-card warning-card">
+                            <div class="card-icon"></div>
+                            <div class="card-content">
+                                <div class="card-value" id="uniquePatientsCount">0</div>
+                                <div class="card-subtitle">Унікальних пацієнтів</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Таблиця помилок на всю ширину -->
+                    <div class="error-table-full-width">
+                        <h3>Детальний список помилок</h3>
+                        <div class="data-table modern-table full-width-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th width="3%">№ по порядку</th>
+                                        <th width="25%">ID ЕМЗ</th>
+                                        <th width="25%">ID пацієнта</th>
+                                        <th width="45%" style="text-align: center;">Опис помилки</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="errorDetailsBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="error-content-grid">
+                        <div class="error-chart-section">
+                            <h3>Статистика помилок</h3>
+                            
+                            <div class="error-summary">
+                                <h4>Детальна статистика</h4>
+                                <div class="summary-stats">
+                                    <div class="summary-item">
+                                        <span class="summary-label">Найчастіша помилка:</span>
+                                        <span class="summary-value" id="mostCommonError">-</span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="summary-label">Середня кількість на пацієнта:</span>
+                                        <span class="summary-value" id="avgErrorsPerPatient">0</span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="summary-label">Унікальних коментарів:</span>
+                                        <span class="summary-value" id="uniqueErrorTypes">0</span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="summary-label">Повторювані помилки:</span>
+                                        <span class="summary-value" id="repeatedErrors">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Повна статистика по всіх лікарях (прихована за початковим станом) -->
+                <div class="full-stats-section" id="fullStatsSection" style="display: none;">
+                    <div class="toggle-stats-btn" onclick="toggleFullStats()">
+                        Показати повну статистику по всіх лікарях
+                    </div>
+                    
+                    <div id="fullStatsContent" style="display: none;">
+                        <div class="stats-grid" id="errorStatsGrid"></div>
+                        
+                        <div class="search-section">
+                            <input type="text" class="search-box modern-search" id="errorSearchBox" placeholder="Пошук лікаря за ПІБ...">
+                        </div>
+
+                        <div class="data-table modern-table">
+                            <table id="errorsTable">
+                                <thead>
+                                    <tr>
+                                        <th>ПІБ лікаря</th>
+                                        <th>Кількість помилок</th>
+                                        <th>Список помилок</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="errorsTableBody"></tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="chart-container">
+                            <div class="chart-title">Топ-10 лікарів за кількістю помилок</div>
+                            <canvas id="topErrorsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Повідомлення про відсутність вибору -->
+                <div id="noSelectionMessage" class="no-selection-message">
+                    <div class="message-icon"></div>
+                    <div class="message-text">
+                        <h3>Оберіть лікаря для початку аналізу</h3>
+                        <p>Виберіть лікаря з випадаючого списку, щоб побачити детальну інформацію про помилки</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="charts">
+                <div class="chart-container">
+                    <div class="chart-title">Топ-10 лікарів за сумою</div>
+                    <canvas id="topAmountChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">Топ-10 лікарів за кількістю пацієнтів</div>
+                    <canvas id="topPatientsChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">Розподіл сум по лікарях (Топ-10)</div>
+                    <canvas id="pieChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">Залежність суми від кількості пацієнтів</div>
+                    <canvas id="scatterChart"></canvas>
+                </div>
+            </div>
+
+            <div class="tab-content" id="details">
+                <select class="doctor-selector" id="doctorSelector">
+                    <option value="">Оберіть лікаря...</option>
+                </select>
+                <div class="doctor-stats" id="doctorStats"></div>
+                <div class="data-table">
+                    <table id="patientsTable">
+                        <thead>
+                            <tr>
+                                <th>ID пацієнта</th>
+                                <th>Сума до сплати (грн)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="patientsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-content" id="export">
+                <button class="export-button" id="exportButton">💾 Завантажити Excel файл</button>
+                <div class="data-table">
+                    <table id="exportTable">
+                        <thead>
+                            <tr>
+                                <th>Показник</th>
+                                <th>Значення</th>
+                            </tr>
+                        </thead>
+                        <tbody id="exportTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Глобальні змінні
+        let uploadedFiles = {};
+        let processedData = null;
+        let errorData = null;
+        let charts = {};
+
+        // Ініціалізація
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEventListeners();
+        });
+
+        function initializeEventListeners() {
+            const uploadArea1 = document.getElementById('uploadArea1');
+            const uploadArea2 = document.getElementById('uploadArea2');
+            const fileInput1 = document.getElementById('fileInput1');
+            const fileInput2 = document.getElementById('fileInput2');
+            const processButton = document.getElementById('processButton');
+
+            // Події завантаження файлів
+            uploadArea1.addEventListener('click', () => fileInput1.click());
+            uploadArea2.addEventListener('click', () => fileInput2.click());
+            fileInput1.addEventListener('change', (e) => handleFileSelect(e, 1));
+            fileInput2.addEventListener('change', (e) => handleFileSelect(e, 2));
+
+            // Drag and drop для першої кнопки
+            uploadArea1.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea1.classList.add('dragover');
+            });
+
+            uploadArea1.addEventListener('dragleave', () => {
+                uploadArea1.classList.remove('dragover');
+            });
+
+            uploadArea1.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea1.classList.remove('dragover');
+                handleFiles(e.dataTransfer.files, 1);
+            });
+
+            // Drag and drop для другої кнопки
+            uploadArea2.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea2.classList.add('dragover');
+            });
+
+            uploadArea2.addEventListener('dragleave', () => {
+                uploadArea2.classList.remove('dragover');
+            });
+
+            uploadArea2.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea2.classList.remove('dragover');
+                handleFiles(e.dataTransfer.files, 2);
+            });
+
+            // Кнопка обробки
+            processButton.addEventListener('click', processData);
+
+            // Вкладки
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+            });
+
+            // Пошук
+            document.getElementById('searchBox').addEventListener('input', filterTable);
+
+            // Пошук помилок
+            document.getElementById('errorSearchBox').addEventListener('input', filterErrorsTable);
+
+            // Вибір лікаря
+            document.getElementById('doctorSelector').addEventListener('change', showDoctorDetails);
+
+            // Вибір лікаря для помилок
+            document.getElementById('errorDoctorSelector').addEventListener('change', showErrorDetails);
+
+            // Експорт
+            document.getElementById('exportButton').addEventListener('click', exportToExcel);
+        }
+
+        function handleFileSelect(e, buttonNumber) {
+            handleFiles(e.target.files, buttonNumber);
+        }
+
+        function handleFiles(files, buttonNumber) {
+            const fileList = document.getElementById('fileList');
+            
+            Array.from(files).forEach(file => {
+                if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                    uploadedFiles[file.name] = file;
+                    
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    fileItem.innerHTML = `
+                        <div>
+                            <div class="file-name">${file.name}</div>
+                            <div class="file-size">${formatFileSize(file.size)}</div>
+                        </div>
+                        <button class="remove-file" onclick="removeFile('${file.name}')">Видалити</button>
+                    `;
+                    fileList.appendChild(fileItem);
+
+                    // Оновлюємо вигляд відповідної кнопки
+                    if (buttonNumber === 1) {
+                        const uploadArea1 = document.getElementById('uploadArea1');
+                        uploadArea1.classList.add('uploaded');
+                        uploadArea1.querySelector('.upload-text').textContent = '✅ Файл завантажено';
+                    } else if (buttonNumber === 2) {
+                        const uploadArea2 = document.getElementById('uploadArea2');
+                        uploadArea2.classList.add('uploaded');
+                        uploadArea2.querySelector('.upload-text').textContent = '✅ Файл завантажено';
+                    }
+                }
+            });
+
+            updateProcessButton();
+        }
+
+        function removeFile(fileName) {
+            delete uploadedFiles[fileName];
+            updateFileList();
+            updateProcessButton();
+            
+            // Показуємо секцію завантаження знову при видаленні файлу
+            const uploadSection = document.querySelector('.upload-section');
+            uploadSection.style.display = 'block';
+
+            // Скидаємо вигляд кнопок, якщо файли видалено
+            const uploadArea1 = document.getElementById('uploadArea1');
+            const uploadArea2 = document.getElementById('uploadArea2');
+            
+            // Перевіряємо, чи є файли відповідного типу
+            const hasFullFile = Object.keys(uploadedFiles).some(name => name.includes('Січень повна'));
+            const hasReportFile = Object.keys(uploadedFiles).some(name => name.includes('Звіт_по_включеним'));
+            
+            if (!hasFullFile) {
+                uploadArea1.classList.remove('uploaded');
+                uploadArea1.querySelector('.upload-text').textContent = 'Звіт з розшифровкою від НСЗУ';
+            }
+            
+            if (!hasReportFile) {
+                uploadArea2.classList.remove('uploaded');
+                uploadArea2.querySelector('.upload-text').textContent = 'Розшифровка пацієнтів включених до звіту (Сума грн)';
+            }
+        }
+
+        function updateFileList() {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '';
+            
+            Object.keys(uploadedFiles).forEach(fileName => {
+                const file = uploadedFiles[fileName];
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <div>
+                        <div class="file-name">${fileName}</div>
+                        <div class="file-size">${formatFileSize(file.size)}</div>
+                    </div>
+                    <button class="remove-file" onclick="removeFile('${fileName}')">Видалити</button>
+                `;
+                fileList.appendChild(fileItem);
+            });
+        }
+
+        function updateProcessButton() {
+            const processButton = document.getElementById('processButton');
+            const uploadSection = document.querySelector('.upload-section');
+            const hasFullFile = Object.keys(uploadedFiles).some(name => name.includes('Січень повна'));
+            const hasReportFile = Object.keys(uploadedFiles).some(name => name.includes('Звіт_по_включеним'));
+            
+            processButton.disabled = !(hasFullFile && hasReportFile);
+            
+            // Ховаємо секцію завантаження коли обидва файли завантажені
+            if (hasFullFile && hasReportFile) {
+                setTimeout(() => {
+                    uploadSection.style.display = 'none';
+                }, 1500); // Затримка 1.5 секунди для візуального підтвердження
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        async function processData() {
+            const processButton = document.getElementById('processButton');
+            processButton.disabled = true;
+            processButton.innerHTML = '⏳ Обробка...';
+
+            try {
+                // Знаходимо файли
+                const fullFileName = Object.keys(uploadedFiles).find(name => name.includes('Січень повна'));
+                const reportFileName = Object.keys(uploadedFiles).find(name => name.includes('Звіт_по_включеним'));
+
+                if (!fullFileName || !reportFileName) {
+                    throw new Error('Не знайдено необхідні файли');
+                }
+
+                // Читаємо файли
+                const fullFile = uploadedFiles[fullFileName];
+                const reportFile = uploadedFiles[reportFileName];
+
+                const fullData = await readExcelFile(fullFile);
+                const reportData = await readExcelFile(reportFile);
+
+                // Обробляємо дані
+                processedData = processExcelData(fullData, reportData);
+
+                // Показуємо результати
+                showResults();
+                
+                // Показуємо успішне повідомлення
+                showMessage('✅ Дані успішно оброблено!', 'success');
+
+            } catch (error) {
+                showMessage(`❌ Помилка: ${error.message}`, 'error');
+                console.error('Processing error:', error);
+            } finally {
+                processButton.disabled = false;
+                processButton.innerHTML = 'Обробити дані';
+            }
+        }
+
+        function readExcelFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        // Беремо перший аркуш
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                        
+                        resolve(jsonData);
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                
+                reader.onerror = () => reject(new Error('Помилка читання файлу'));
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function processExcelData(fullData, reportData) {
+            // Знаходимо заголовки в повному файлі
+            let fullHeaderRow = -1;
+            for (let i = 0; i < Math.min(10, fullData.length); i++) {
+                for (let j = 0; j < fullData[i].length; j++) {
+                    if (fullData[i][j] && String(fullData[i][j]).includes('Унікальний код пацієнта')) {
+                        fullHeaderRow = i;
+                        break;
+                    }
+                }
+                if (fullHeaderRow >= 0) break;
+            }
+
+            // Знаходимо заголовки в файлі звіту
+            let reportHeaderRow = -1;
+            for (let i = 0; i < Math.min(10, reportData.length); i++) {
+                for (let j = 0; j < reportData[i].length; j++) {
+                    if (reportData[i][j] && String(reportData[i][j]).includes('ID пацієнта')) {
+                        reportHeaderRow = i;
+                        break;
+                    }
+                }
+                if (reportHeaderRow >= 0) break;
+            }
+
+            if (fullHeaderRow < 0 || reportHeaderRow < 0) {
+                throw new Error('Не знайдено заголовки у файлах');
+            }
+
+            // Отримуємо дані з заголовками
+            const fullHeaders = fullData[fullHeaderRow];
+            const fullRows = fullData.slice(fullHeaderRow + 1).filter(row => row.length > 0 && row[0]);
+            
+            const reportHeaders = reportData[reportHeaderRow];
+            const reportRows = reportData.slice(reportHeaderRow + 1).filter(row => row.length > 0 && row[0]);
+
+            // Знаходимо індекси стовпців для основних даних
+            const patientIdIndex = fullHeaders.findIndex(h => h && String(h).includes('Унікальний код пацієнта'));
+            const doctorNameIndex = fullHeaders.findIndex(h => h && String(h).includes('Медичний працівник'));
+            const doctorPositionIndex = fullHeaders.findIndex(h => h && String(h).includes('Посада медичного працівника'));
+            const emzIdIndex = fullHeaders.findIndex(h => h && String(h).includes('ID ЕМЗ'));
+            const errorCommentIndex = fullHeaders.findIndex(h => h && String(h).includes('Коментар щодо виявлених помилок'));
+
+            const reportPatientIdIndex = reportHeaders.findIndex(h => h && String(h).includes('ID пацієнта'));
+            const reportAmountIndex = reportHeaders.findIndex(h => h && String(h).includes('До сплати'));
+
+            if (patientIdIndex < 0 || reportPatientIdIndex < 0) {
+                throw new Error('Не знайдено необхідні стовпці');
+            }
+
+            // Аналіз помилок
+            errorData = analyzeErrors(fullRows, fullHeaders, patientIdIndex, doctorNameIndex, emzIdIndex, errorCommentIndex);
+
+            // Створюємо словник пацієнтів з сумами
+            const patientAmounts = {};
+            reportRows.forEach(row => {
+                if (row[reportPatientIdIndex] && row[reportAmountIndex]) {
+                    const patientId = String(row[reportPatientIdIndex]).trim();
+                    const amount = parseFloat(row[reportAmountIndex]) || 0;
+                    patientAmounts[patientId] = amount;
+                }
+            });
+
+            // Групуємо дані по лікарях
+            const doctorsData = {};
+            
+            fullRows.forEach(row => {
+                const patientId = String(row[patientIdIndex] || '').trim();
+                const doctorName = String(row[doctorNameIndex] || '').trim();
+                const doctorPosition = String(row[doctorPositionIndex] || 'Невідомо').trim();
+
+                if (patientId && doctorName && doctorName !== '-' && doctorName.split(' ').length >= 2) {
+                    if (!doctorsData[doctorName]) {
+                        doctorsData[doctorName] = {
+                            position: doctorPosition,
+                            patients: new Set(),
+                            totalAmount: 0
+                        };
+                    }
+                    
+                    doctorsData[doctorName].patients.add(patientId);
+                    
+                    // Додаємо суму, якщо є в звіті
+                    if (patientAmounts[patientId]) {
+                        doctorsData[doctorName].totalAmount += patientAmounts[patientId];
+                    }
+                }
+            });
+
+            // Конвертуємо в масив результатів
+            const results = [];
+            Object.keys(doctorsData).forEach(doctorName => {
+                const doctorData = doctorsData[doctorName];
+                results.push({
+                    doctorName: doctorName,
+                    doctorPosition: doctorData.position,
+                    totalPatients: doctorData.patients.size,
+                    totalAmount: doctorData.totalAmount,
+                    patients: Array.from(doctorData.patients).map(id => ({
+                        id: id,
+                        amount: patientAmounts[id] || 0
+                    })).filter(p => p.amount > 0)
+                });
+            });
+
+            // Сортуємо за сумою
+            results.sort((a, b) => b.totalAmount - a.totalAmount);
+
+            return results;
+        }
+
+        function analyzeErrors(fullRows, headers, patientIdIndex, doctorNameIndex, emzIdIndex, errorCommentIndex) {
+            const errorsByDoctor = {};
+            
+            // Знаходимо індекс колонки "Деталі виявлених невідповідностей"
+            const detailsIndex = headers.findIndex(h => h && String(h).includes('Деталі виявлених невідповідностей, які потребують додаткової перевірки та верифікації з боку надавача послуг'));
+            
+            fullRows.forEach(row => {
+                const doctorName = String(row[doctorNameIndex] || '').trim();
+                const patientId = String(row[patientIdIndex] || '').trim();
+                const emzId = emzIdIndex >= 0 ? String(row[emzIdIndex] || '').trim() : '';
+                const errorComment = errorCommentIndex >= 0 ? String(row[errorCommentIndex] || '').trim() : '';
+                const details = detailsIndex >= 0 ? String(row[detailsIndex] || '').trim() : '';
+                
+                // Перевіряємо, чи є помилка (непорожній коментар)
+                if (doctorName && doctorName !== '-' && errorComment && errorComment !== '' && errorComment !== '-') {
+                    if (!errorsByDoctor[doctorName]) {
+                        errorsByDoctor[doctorName] = [];
+                    }
+                    
+                    errorsByDoctor[doctorName].push({
+                        patientId: patientId,
+                        emzId: emzId,
+                        comment: errorComment,
+                        details: details // Додаємо деталі
+                    });
+                }
+            });
+            
+            return errorsByDoctor;
+        }
+
+        function showResults() {
+            if (!processedData) return;
+
+            document.getElementById('resultsSection').style.display = 'block';
+            
+            // Показуємо статистику
+            showStats();
+            
+            // Показуємо таблицю
+            showMainTable();
+            
+            // Показуємо аналіз помилок
+            showErrorStats();
+            showErrorsTable();
+            populateErrorDoctorSelector();
+            createErrorChart();
+            
+            // Наповнюємо селектор лікарів
+            populateDoctorSelector();
+            
+            // Створюємо графіки
+            createCharts();
+            
+            // Показуємо експортні дані
+            showExportData();
+        }
+
+        function showErrorStats() {
+            if (!errorData) return;
+            
+            const totalDoctorsWithErrors = Object.keys(errorData).length;
+            const totalErrors = Object.values(errorData).reduce((sum, errors) => sum + errors.length, 0);
+            const avgErrorsPerDoctor = totalDoctorsWithErrors > 0 ? (totalErrors / totalDoctorsWithErrors).toFixed(1) : 0;
+            
+            // Знаходимо лікаря з найбільшою кількістю помилок
+            let maxErrorsDoctor = '';
+            let maxErrorsCount = 0;
+            Object.entries(errorData).forEach(([doctor, errors]) => {
+                if (errors.length > maxErrorsCount) {
+                    maxErrorsCount = errors.length;
+                    maxErrorsDoctor = doctor;
+                }
+            });
+
+            const errorStatsGrid = document.getElementById('errorStatsGrid');
+            errorStatsGrid.innerHTML = `
+                <div class="stat-card" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+                    <div class="stat-value">${totalDoctorsWithErrors}</div>
+                    <div class="stat-label">❌ Лікарів з помилками</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #f39c12, #e67e22);">
+                    <div class="stat-value">${totalErrors}</div>
+                    <div class="stat-label">🔍 Всього помилок</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">
+                    <div class="stat-value">${avgErrorsPerDoctor}</div>
+                    <div class="stat-label">📊 Середньо помилок на лікаря</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #e67e22, #d35400);">
+                    <div class="stat-value">${maxErrorsCount}</div>
+                    <div class="stat-label">🏆 Найбільше помилок</div>
+                </div>
+            `;
+        }
+
+        function showErrorsTable() {
+            if (!errorData) return;
+            
+            const tbody = document.getElementById('errorsTableBody');
+            tbody.innerHTML = '';
+            
+            // Сортуємо лікарів за кількістю помилок
+            const sortedDoctors = Object.entries(errorData).sort((a, b) => b[1].length - a[1].length);
+            
+            sortedDoctors.forEach(([doctorName, errors]) => {
+                const row = tbody.insertRow();
+                
+                // Створюємо список помилок
+                const errorList = errors.slice(0, 3).map(error => 
+                    `${error.patientId} (${error.emzId}): ${error.comment}`
+                ).join('; ');
+                
+                const hasMoreErrors = errors.length > 3;
+                
+                row.innerHTML = `
+                    <td>${doctorName}</td>
+                    <td>
+                        <span class="error-count-badge">${errors.length}</span>
+                    </td>
+                    <td>
+                        <div class="error-list">
+                            ${errorList}
+                            ${hasMoreErrors ? `<div style="color: #e74c3c; font-weight: bold;">... та ще ${errors.length - 3} помилок</div>` : ''}
+                        </div>
+                    </td>
+                `;
+            });
+        }
+
+        function filterErrorsTable() {
+            const searchTerm = document.getElementById('errorSearchBox').value.toLowerCase();
+            const tbody = document.getElementById('errorsTableBody');
+            const rows = tbody.getElementsByTagName('tr');
+            
+            Array.from(rows).forEach(row => {
+                const doctorName = row.cells[0].textContent.toLowerCase();
+                row.style.display = doctorName.includes(searchTerm) ? '' : 'none';
+            });
+        }
+
+        function populateErrorDoctorSelector() {
+            if (!errorData) return;
+            
+            const selector = document.getElementById('errorDoctorSelector');
+            selector.innerHTML = '<option value="">Оберіть лікаря для детального аналізу...</option>';
+            
+            // Сортуємо лікарів за алфавітом
+            const sortedDoctors = Object.entries(errorData).sort((a, b) => a[0].localeCompare(b[0], 'uk', { sensitivity: 'base' }));
+            
+            sortedDoctors.forEach(([doctorName, errors]) => {
+                const option = document.createElement('option');
+                option.value = doctorName;
+                option.textContent = `${doctorName} (${errors.length} помилок)`;
+                selector.appendChild(option);
+            });
+        }
+
+        function showErrorDetails() {
+            const doctorName = document.getElementById('errorDoctorSelector').value;
+            if (!doctorName || !errorData) {
+                // Показуємо повідомлення про вибір лікаря
+                document.getElementById('errorAnalysisSection').style.display = 'none';
+                document.getElementById('noSelectionMessage').style.display = 'block';
+                document.getElementById('fullStatsSection').style.display = 'block';
+                return;
+            }
+            
+            const errors = errorData[doctorName];
+            if (!errors) return;
+            
+            // Приховуємо повідомлення про вибір і показуємо аналіз
+            document.getElementById('noSelectionMessage').style.display = 'none';
+            document.getElementById('errorAnalysisSection').style.display = 'block';
+            document.getElementById('fullStatsSection').style.display = 'block';
+            
+            // Оновлюємо картки з оглядом
+            document.getElementById('selectedDoctorName').textContent = doctorName;
+            document.getElementById('totalErrorCount').textContent = errors.length;
+            
+            // Рахуємо унікальних пацієнтів
+            const uniquePatients = new Set(errors.map(e => e.patientId)).size;
+            document.getElementById('uniquePatientsCount').textContent = uniquePatients;
+            
+            // Заповнюємо таблицю з деталями (нова структура: № по порядку, ID ЕМЗ, ID пацієнта, опис помилки)
+            const tbody = document.getElementById('errorDetailsBody');
+            tbody.innerHTML = '';
+            
+            errors.forEach((error, index) => {
+                const row = tbody.insertRow();
+                let detailsHtml = '';
+                if (error.details && error.details !== '' && error.details !== '-') {
+                    detailsHtml = `<div class="details-item">${error.details}</div>`;
+                }
+                
+                row.innerHTML = `
+                    <td><strong>${index + 1}</strong></td>
+                    <td><code onclick="copyToClipboard('${error.emzId || ''}')">${error.emzId || '-'}</code></td>
+                    <td><code onclick="copyToClipboard('${error.patientId}')">${error.patientId}</code></td>
+                    <td>
+                        <div class="error-item">${error.comment}</div>
+                        ${detailsHtml}
+                    </td>
+                `;
+            });
+            
+            // Оновлюємо статистику
+            updateErrorStatistics(errors);
+        }
+
+        function copyToClipboard(text) {
+            if (!text || text === '-') return;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                // Показуємо тимчасове повідомлення про копіювання
+                const originalText = event.target.textContent;
+                event.target.textContent = '✅ Скопійовано!';
+                event.target.style.background = 'rgba(76, 175, 80, 0.3)';
+                
+                setTimeout(() => {
+                    event.target.textContent = originalText;
+                    event.target.style.background = 'rgba(92, 107, 192, 0.2)';
+                }, 1500);
+            }).catch(err => {
+                console.error('Помилка копіювання:', err);
+            });
+        }
+
+        function updateErrorStatistics(errors) {
+            // Знаходимо найчастішу помилку
+            const errorComments = errors.map(e => e.comment);
+            const commentFrequency = {};
+            errorComments.forEach(comment => {
+                commentFrequency[comment] = (commentFrequency[comment] || 0) + 1;
+            });
+            
+            const mostCommon = Object.entries(commentFrequency)
+                .sort((a, b) => b[1] - a[1])[0];
+            
+            const mostCommonErrorText = mostCommon 
+                ? `${mostCommon[0].substring(0, 60)}${mostCommon[0].length > 60 ? '...' : ''} (${mostCommon[1]} раз)`
+                : '-';
+            
+            document.getElementById('mostCommonError').textContent = mostCommonErrorText;
+            
+            // Середня кількість помилок на пацієнта
+            const uniquePatients = new Set(errors.map(e => e.patientId)).size;
+            const avgErrorsPerPatient = uniquePatients > 0 ? (errors.length / uniquePatients).toFixed(1) : 0;
+            document.getElementById('avgErrorsPerPatient').textContent = avgErrorsPerPatient;
+            
+            // Унікальні коментарі
+            const uniqueComments = new Set(errorComments).size;
+            document.getElementById('uniqueErrorTypes').textContent = uniqueComments;
+            
+            // Повторювані помилки (зустрічаються більше 1 разу)
+            const repeatedErrors = Object.values(commentFrequency).filter(count => count > 1).length;
+            document.getElementById('repeatedErrors').textContent = repeatedErrors;
+        }
+
+        function toggleFullStats() {
+            const content = document.getElementById('fullStatsContent');
+            const btn = document.querySelector('.toggle-stats-btn');
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                btn.textContent = '📊 Приховати повну статистику';
+            } else {
+                content.style.display = 'none';
+                btn.textContent = '📊 Показати повну статистику по всіх лікарях';
+            }
+        }
+
+        function createErrorChart() {
+            if (!errorData) return;
+            
+            const ctx = document.getElementById('topErrorsChart').getContext('2d');
+            
+            // Беремо топ-10 лікарів за кількістю помилок
+            const sortedDoctors = Object.entries(errorData).sort((a, b) => b[1].length - a[1].length).slice(0, 10);
+            
+            if (charts.topErrors) charts.topErrors.destroy();
+            
+            charts.topErrors = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sortedDoctors.map(([doctor, errors]) => doctor),
+                    datasets: [{
+                        label: 'Кількість помилок',
+                        data: sortedDoctors.map(([doctor, errors]) => errors.length),
+                        backgroundColor: 'rgba(231, 76, 60, 0.8)',
+                        borderColor: 'rgba(231, 76, 60, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Кількість помилок'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function showStats() {
+            const totalDoctors = processedData.length;
+            const totalPatients = processedData.reduce((sum, d) => sum + d.totalPatients, 0);
+            const totalAmount = processedData.reduce((sum, d) => sum + d.totalAmount, 0);
+            const avgAmount = totalPatients > 0 ? totalAmount / totalPatients : 0;
+
+            const statsGrid = document.getElementById('statsGrid');
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-value">${totalDoctors}</div>
+                    <div class="stat-label">👥 Всього лікарів</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${totalPatients}</div>
+                    <div class="stat-label">🧾 Всього пацієнтів</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${totalAmount.toLocaleString('uk-UA', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                    <div class="stat-label">💰 Загальна сума (грн)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${avgAmount.toLocaleString('uk-UA', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                    <div class="stat-label">📊 Середня сума (грн)</div>
+                </div>
+            `;
+        }
+
+        function sortTable(columnName) {
+            if (!processedData) return;
+            
+            // Визначаємо напрямок сортування
+            const currentSort = document.querySelector(`th[data-sort="${columnName}"]`).dataset.direction;
+            const newDirection = currentSort === 'asc' ? 'desc' : 'asc';
+            
+            // Оновлюємо напрямки сортування для всіх заголовків
+            document.querySelectorAll('th[data-sort]').forEach(th => {
+                th.dataset.direction = '';
+                const text = th.textContent.replace(' ↕', '').replace(' ↑', '').replace(' ↓', '');
+                th.textContent = text + ' ↕';
+            });
+            
+            // Встановлюємо новий напрямок для поточного заголовка
+            const currentTh = document.querySelector(`th[data-sort="${columnName}"]`);
+            currentTh.dataset.direction = newDirection;
+            const text = currentTh.textContent.replace(' ↕', '').replace(' ↑', '').replace(' ↓', '');
+            currentTh.textContent = text + (newDirection === 'asc' ? ' ↑' : ' ↓');
+            
+            // Сортуємо дані
+            const sortedData = [...processedData].sort((a, b) => {
+                let aVal = a[columnName];
+                let bVal = b[columnName];
+                
+                if (typeof aVal === 'string') {
+                    aVal = aVal.toLowerCase();
+                    bVal = bVal.toLowerCase();
+                }
+                
+                if (newDirection === 'asc') {
+                    return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+                } else {
+                    return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+                }
+            });
+            
+            // Оновлюємо таблицю
+            const tbody = document.getElementById('mainTableBody');
+            tbody.innerHTML = '';
+            
+            sortedData.forEach(doctor => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${doctor.doctorName}</td>
+                    <td>${doctor.doctorPosition}</td>
+                    <td>${doctor.totalPatients}</td>
+                    <td>${doctor.totalAmount.toLocaleString('uk-UA', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                `;
+            });
+            
+            // Зберігаємо відсортовані дані
+            processedData = sortedData;
+        }
+
+        function showMainTable() {
+            const tbody = document.getElementById('mainTableBody');
+            tbody.innerHTML = '';
+            
+            // Сортуємо лікарів за алфавітом
+            const sortedDoctors = [...processedData].sort((a, b) => a.doctorName.localeCompare(b.doctorName, 'uk', { sensitivity: 'base' }));
+            
+            sortedDoctors.forEach(doctor => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${doctor.doctorName}</td>
+                    <td>${doctor.doctorPosition}</td>
+                    <td>${doctor.totalPatients}</td>
+                    <td>${doctor.totalAmount.toLocaleString('uk-UA', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                `;
+            });
+        }
+
+        function filterTable() {
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            const tbody = document.getElementById('mainTableBody');
+            const rows = tbody.getElementsByTagName('tr');
+            
+            Array.from(rows).forEach(row => {
+                const doctorName = row.cells[0].textContent.toLowerCase();
+                row.style.display = doctorName.includes(searchTerm) ? '' : 'none';
+            });
+        }
+
+        function populateDoctorSelector() {
+            const selector = document.getElementById('doctorSelector');
+            selector.innerHTML = '<option value="">Оберіть лікаря...</option>';
+            
+            // Сортуємо лікарів за алфавітом
+            const sortedDoctors = [...processedData].sort((a, b) => a.doctorName.localeCompare(b.doctorName, 'uk', { sensitivity: 'base' }));
+            
+            sortedDoctors.forEach(doctor => {
+                const option = document.createElement('option');
+                option.value = doctor.doctorName;
+                option.textContent = `${doctor.doctorName} (${doctor.totalPatients} пацієнтів)`;
+                selector.appendChild(option);
+            });
+        }
+
+        function showDoctorDetails() {
+            const doctorName = document.getElementById('doctorSelector').value;
+            if (!doctorName) return;
+            
+            const doctor = processedData.find(d => d.doctorName === doctorName);
+            if (!doctor) return;
+            
+            // Показуємо статистику лікаря
+            const doctorStats = document.getElementById('doctorStats');
+            const avgPatientAmount = doctor.totalPatients > 0 ? doctor.totalAmount / doctor.totalPatients : 0;
+            
+            doctorStats.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-value">${doctor.totalPatients}</div>
+                    <div class="stat-label">👥 Кількість пацієнтів</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${doctor.totalAmount.toLocaleString('uk-UA', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                    <div class="stat-label">💰 Загальна сума</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${avgPatientAmount.toLocaleString('uk-UA', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                    <div class="stat-label">📊 Середня сума</div>
+                </div>
+            `;
+            
+            // Показуємо таблицю пацієнтів
+            const tbody = document.getElementById('patientsTableBody');
+            tbody.innerHTML = '';
+            
+            const sortedPatients = doctor.patients.sort((a, b) => b.amount - a.amount);
+            sortedPatients.forEach(patient => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${patient.id}</td>
+                    <td>${patient.amount.toLocaleString('uk-UA', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                `;
+            });
+        }
+
+        function createCharts() {
+            // Топ-10 за сумою
+            createTopAmountChart();
+            
+            // Топ-10 за кількістю пацієнтів
+            createTopPatientsChart();
+            
+            // Кругова діаграма
+            createPieChart();
+            
+            // Scatter plot
+            createScatterChart();
+        }
+
+        function createTopAmountChart() {
+            const ctx = document.getElementById('topAmountChart').getContext('2d');
+            const top10 = processedData.slice(0, 10);
+            
+            if (charts.topAmount) charts.topAmount.destroy();
+            
+            charts.topAmount = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: top10.map(d => d.doctorName),
+                    datasets: [{
+                        label: 'Сума до сплати (грн)',
+                        data: top10.map(d => d.totalAmount),
+                        backgroundColor: 'rgba(52, 152, 219, 0.8)',
+                        borderColor: 'rgba(52, 152, 219, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString('uk-UA') + ' грн';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createTopPatientsChart() {
+            const ctx = document.getElementById('topPatientsChart').getContext('2d');
+            const top10 = [...processedData].sort((a, b) => b.totalPatients - a.totalPatients).slice(0, 10);
+            
+            if (charts.topPatients) charts.topPatients.destroy();
+            
+            charts.topPatients = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: top10.map(d => d.doctorName),
+                    datasets: [{
+                        label: 'Кількість пацієнтів',
+                        data: top10.map(d => d.totalPatients),
+                        backgroundColor: 'rgba(46, 204, 113, 0.8)',
+                        borderColor: 'rgba(46, 204, 113, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function createPieChart() {
+            const ctx = document.getElementById('pieChart').getContext('2d');
+            const top10 = processedData.slice(0, 10);
+            
+            if (charts.pie) charts.pie.destroy();
+            
+            charts.pie = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: top10.map(d => d.doctorName),
+                    datasets: [{
+                        label: 'Сума до сплати (грн)',
+                        data: top10.map(d => d.totalAmount),
+                        backgroundColor: [
+                            '#FF6384',
+                            '#36A2EB',
+                            '#FFCE56',
+                            '#4BC0C0',
+                            '#9966FF',
+                            '#FF9F40',
+                            '#FF6384',
+                            '#C9CBCF',
+                            '#4BC0C0',
+                            '#FF6384'
+                        ],
+                        borderColor: [
+                            '#FF6384',
+                            '#36A2EB',
+                            '#FFCE56',
+                            '#4BC0C0',
+                            '#9966FF',
+                            '#FF9F40',
+                            '#FF6384',
+                            '#C9CBCF',
+                            '#4BC0C0',
+                            '#FF6384'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.parsed.x;
+                                    return `${context.label}: ${value.toLocaleString('uk-UA')} грн`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Сума до сплати (грн)',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString('uk-UA') + ' ₴';
+                                }
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'ПІБ лікаря',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createScatterChart() {
+            const ctx = document.getElementById('scatterChart').getContext('2d');
+            
+            if (charts.scatter) charts.scatter.destroy();
+            
+            // Сортуємо дані за кількістю пацієнтів для кращої візуалізації
+            const sortedData = [...processedData].sort((a, b) => a.totalPatients - b.totalPatients);
+            
+            charts.scatter = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'Залежність суми від кількості пацієнтів',
+                        data: sortedData.map(d => ({
+                            x: d.totalPatients,
+                            y: d.totalAmount,
+                            doctorName: d.doctorName
+                        })),
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 3,
+                        pointRadius: 8,
+                        pointHoverRadius: 12,
+                        pointBackgroundColor: 'rgba(75, 192, 192, 1)',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                },
+                                color: '#2c3e50',
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 2,
+                            cornerRadius: 8,
+                            displayColors: true,
+                            callbacks: {
+                                title: function(context) {
+                                    return context[0].raw.doctorName;
+                                },
+                                label: function(context) {
+                                    return [
+                                        `Пацієнти: ${context.parsed.x}`,
+                                        `Сума: ${context.parsed.y.toLocaleString('uk-UA')} грн`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            title: {
+                                display: true,
+                                text: 'Кількість пацієнтів',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                },
+                                color: '#2c3e50'
+                            },
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                font: {
+                                    size: 12
+                                },
+                                color: '#666'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Сума до сплати (грн)',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                },
+                                color: '#2c3e50'
+                            },
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                font: {
+                                    size: 12
+                                },
+                                color: '#666',
+                                callback: function(value) {
+                                    return value.toLocaleString('uk-UA') + ' грн';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function showExportData() {
+            const totalDoctors = processedData.length;
+            const totalPatients = processedData.reduce((sum, d) => sum + d.totalPatients, 0);
+            const totalAmount = processedData.reduce((sum, d) => sum + d.totalAmount, 0);
+            const avgAmount = totalPatients > 0 ? totalAmount / totalPatients : 0;
+            const maxAmount = Math.max(...processedData.map(d => d.totalAmount));
+            const minAmount = Math.min(...processedData.map(d => d.totalAmount));
+            const avgPatientsPerDoctor = totalPatients / totalDoctors;
+
+            const exportData = [
+                ['Показник', 'Значення'],
+                ['Всього лікарів', totalDoctors],
+                ['Всього пацієнтів', totalPatients],
+                ['Загальна сума (грн)', totalAmount.toLocaleString('uk-UA', {minimumFractionDigits: 2, maximumFractionDigits: 2})],
+                ['Середня сума на пацієнта (грн)', avgAmount.toLocaleString('uk-UA', {minimumFractionDigits: 2, maximumFractionDigits: 2})],
+                ['Максимальна сума (грн)', maxAmount.toLocaleString('uk-UA', {minimumFractionDigits: 2, maximumFractionDigits: 2})],
+                ['Мінімальна сума (грн)', minAmount.toLocaleString('uk-UA', {minimumFractionDigits: 2, maximumFractionDigits: 2})],
+                ['Середня кількість пацієнтів на лікаря', avgPatientsPerDoctor.toFixed(1)]
+            ];
+
+            const tbody = document.getElementById('exportTableBody');
+            tbody.innerHTML = '';
+            
+            exportData.slice(1).forEach(row => {
+                const tr = tbody.insertRow();
+                tr.innerHTML = `<td>${row[0]}</td><td>${row[1]}</td>`;
+            });
+        }
+
+        function exportToExcel() {
+            if (!processedData) return;
+
+            // Створюємо Workbook з налаштуваннями
+            const wb = XLSX.utils.book_new();
+
+            // === Сторінка 1: Загальний звіт з професійним оформленням ===
+            const mainData = [
+                ['ПІБ лікаря', 'Посада', 'Кількість пацієнтів', 'Сума до сплати (грн)', 'Середня сума на пацієнта (грн)'],
+                ...processedData.map(d => [
+                    d.doctorName,
+                    d.doctorPosition,
+                    d.totalPatients,
+                    d.totalAmount,
+                    d.totalPatients > 0 ? (d.totalAmount / d.totalPatients).toFixed(2) : 0
+                ])
+            ];
+
+            const wsMain = XLSX.utils.aoa_to_sheet(mainData);
+            
+            // Налаштування ширини колонок для кращого відображення
+            wsMain['!cols'] = [
+                {wch: 35}, // ПІБ лікаря - ширше
+                {wch: 25}, // Посада
+                {wch: 18}, // Кількість пацієнтів
+                {wch: 22}, // Сума до сплати - ширше
+                {wch: 24}  // Середня сума
+            ];
+
+            // Професійне форматування заголовка
+            const headerRange = XLSX.utils.decode_range(wsMain['!ref']);
+            for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
+                const cellAddress = XLSX.utils.encode_cell({r: 0, c: col});
+                if (!wsMain[cellAddress]) wsMain[cellAddress] = {};
+                wsMain[cellAddress].s = {
+                    font: {bold: true, color: {rgb: "FFFFFF"}, sz: 12},
+                    fill: {patternType: "solid", fgColor: {rgb: "2C3E50"}},
+                    alignment: {horizontal: "center", vertical: "center", wrapText: true},
+                    border: {
+                        top: {style: "thin", color: {rgb: "000000"}},
+                        bottom: {style: "thin", color: {rgb: "000000"}},
+                        left: {style: "thin", color: {rgb: "000000"}},
+                        right: {style: "thin", color: {rgb: "000000"}}
+                    }
+                };
+            }
+
+            // Форматування даних з кольоровими межами
+            for (let row = 1; row <= mainData.length - 1; row++) {
+                for (let col = 0; col <= 4; col++) {
+                    const cellAddress = XLSX.utils.encode_cell({r: row, c: col});
+                    if (!wsMain[cellAddress]) wsMain[cellAddress] = {};
+                    
+                    // Спільні стилі для всіх клітинок
+                    const baseStyle = {
+                        alignment: {vertical: "center", wrapText: true},
+                        border: {
+                            top: {style: "thin", color: {rgb: "D0D0D0"}},
+                            bottom: {style: "thin", color: {rgb: "D0D0D0"}},
+                            left: {style: "thin", color: {rgb: "D0D0D0"}},
+                            right: {style: "thin", color: {rgb: "D0D0D0"}}
+                        }
+                    };
+                    
+                    if (col === 0) {
+                        // ПІБ лікаря - темно-синій фон
+                        wsMain[cellAddress].s = {
+                            font: {bold: true, color: {rgb: "FFFFFF"}, sz: 11},
+                            fill: {patternType: "solid", fgColor: {rgb: "34495E"}},
+                            alignment: {horizontal: "left", vertical: "center", wrapText: true},
+                            border: baseStyle.border
+                        };
+                    } else if (col === 1) {
+                        // Посада - світло-синій фон
+                        wsMain[cellAddress].s = {
+                            font: {color: {rgb: "2C3E50"}, sz: 10},
+                            fill: {patternType: "solid", fgColor: {rgb: "E8F4FD"}},
+                            alignment: {horizontal: "left", vertical: "center", wrapText: true},
+                            border: baseStyle.border
+                        };
+                    } else if (col === 2) {
+                        // Кількість пацієнтів - зелений фон
+                        wsMain[cellAddress].s = {
+                            font: {bold: true, color: {rgb: "FFFFFF"}, sz: 11},
+                            fill: {patternType: "solid", fgColor: {rgb: "27AE60"}},
+                            alignment: {horizontal: "center", vertical: "center"},
+                            border: baseStyle.border
+                        };
+                    } else if (col === 3) {
+                        // Сума до сплати - жовтий фон
+                        wsMain[cellAddress].s = {
+                            font: {bold: true, color: {rgb: "2C3E50"}, sz: 11},
+                            fill: {patternType: "solid", fgColor: {rgb: "F39C12"}},
+                            numFmt: "#,##0.00 ₴",
+                            alignment: {horizontal: "right", vertical: "center"},
+                            border: baseStyle.border
+                        };
+                    } else if (col === 4) {
+                        // Середня сума - фіолетовий фон
+                        wsMain[cellAddress].s = {
+                            font: {bold: true, color: {rgb: "FFFFFF"}, sz: 11},
+                            fill: {patternType: "solid", fgColor: {rgb: "8E44AD"}},
+                            numFmt: "#,##0.00 ₴",
+                            alignment: {horizontal: "right", vertical: "center"},
+                            border: baseStyle.border
+                        };
+                    }
+                }
+            }
+
+            // Додаємо автофільтр та заморожування
+            wsMain['!autofilter'] = { ref: wsMain['!ref'] };
+            wsMain['!freeze'] = { y: 1 };
+
+            XLSX.utils.book_append_sheet(wb, wsMain, "Загальний звіт");
+
+            // === Сторінка 2: Статистика з професійним оформленням ===
+            const statsData = [
+                ['Показник', 'Значення', 'Опис'],
+                ['Загальна кількість лікарів', processedData.length, 'Кількість унікальних лікарів у звіті'],
+                ['Загальна кількість пацієнтів', processedData.reduce((sum, d) => sum + d.totalPatients, 0), 'Сумарна кількість пацієнтів по всіх лікарях'],
+                ['Загальна сума', processedData.reduce((sum, d) => sum + d.totalAmount, 0), 'Загальна сума до сплати по всіх лікарях'],
+                ['Середня сума на лікаря', (processedData.reduce((sum, d) => sum + d.totalAmount, 0) / processedData.length).toFixed(2), 'Середній дохід одного лікаря'],
+                ['Середня кількість пацієнтів на лікаря', (processedData.reduce((sum, d) => sum + d.totalPatients, 0) / processedData.length).toFixed(2), 'Середнє навантаження на лікаря'],
+                ['Максимальна сума', Math.max(...processedData.map(d => d.totalAmount)), 'Найвища сума до сплати'],
+                ['Мінімальна сума', Math.min(...processedData.map(d => d.totalAmount)), 'Найнижча сума до сплати']
+            ];
+
+            const wsStats = XLSX.utils.aoa_to_sheet(statsData);
+            wsStats['!cols'] = [
+                {wch: 30}, // Показник
+                {wch: 20}, // Значення
+                {wch: 50}  // Опис
+            ];
+
+            // Форматування статистики
+            for (let row = 0; row < statsData.length; row++) {
+                for (let col = 0; col < 3; col++) {
+                    const cellAddress = XLSX.utils.encode_cell({r: row, c: col});
+                    if (!wsStats[cellAddress]) wsStats[cellAddress] = {};
+                    
+                    if (row === 0) {
+                        // Заголовок
+                        wsStats[cellAddress].s = {
+                            font: {bold: true, color: {rgb: "FFFFFF"}, sz: 12},
+                            fill: {patternType: "solid", fgColor: {rgb: "E74C3C"}},
+                            alignment: {horizontal: "center", vertical: "center", wrapText: true},
+                            border: {
+                                top: {style: "thin", color: {rgb: "000000"}},
+                                bottom: {style: "thin", color: {rgb: "000000"}},
+                                left: {style: "thin", color: {rgb: "000000"}},
+                                right: {style: "thin", color: {rgb: "000000"}}
+                            }
+                        };
+                    } else if (col === 1 && row >= 2) {
+                        // Числові значення
+                        wsStats[cellAddress].s = {
+                            font: {bold: true, color: {rgb: "FFFFFF"}, sz: 11},
+                            fill: {patternType: "solid", fgColor: {rgb: "3498DB"}},
+                            numFmt: "#,##0.00 ₴",
+                            alignment: {horizontal: "right", vertical: "center"},
+                            border: {
+                                top: {style: "thin", color: {rgb: "D0D0D0"}},
+                                bottom: {style: "thin", color: {rgb: "D0D0D0"}},
+                                left: {style: "thin", color: {rgb: "D0D0D0"}},
+                                right: {style: "thin", color: {rgb: "D0D0D0"}}
+                            }
+                        };
+                    } else if (col === 0) {
+                        // Показники
+                        wsStats[cellAddress].s = {
+                            font: {bold: true, color: {rgb: "2C3E50"}, sz: 11},
+                            fill: {patternType: "solid", fgColor: {rgb: "ECF0F1"}},
+                            alignment: {horizontal: "left", vertical: "center", wrapText: true},
+                            border: {
+                                top: {style: "thin", color: {rgb: "D0D0D0"}},
+                                bottom: {style: "thin", color: {rgb: "D0D0D0"}},
+                                left: {style: "thin", color: {rgb: "D0D0D0"}},
+                                right: {style: "thin", color: {rgb: "D0D0D0"}}
+                            }
+                        };
+                    } else if (col === 2) {
+                        // Описи
+                        wsStats[cellAddress].s = {
+                            font: {color: {rgb: "7F8C8D"}, sz: 10},
+                            fill: {patternType: "solid", fgColor: {rgb: "F8F9FA"}},
+                            alignment: {horizontal: "left", vertical: "center", wrapText: true},
+                            border: {
+                                top: {style: "thin", color: {rgb: "D0D0D0"}},
+                                bottom: {style: "thin", color: {rgb: "D0D0D0"}},
+                                left: {style: "thin", color: {rgb: "D0D0D0"}},
+                                right: {style: "thin", color: {rgb: "D0D0D0"}}
+                            }
+                        };
+                    }
+                }
+            }
+
+            XLSX.utils.book_append_sheet(wb, wsStats, "Статистика");
+
+            // === Сторінка 3: Топ-10 лікарів з професійним оформленням ===
+            const topDoctors = [...processedData]
+                .sort((a, b) => b.totalAmount - a.totalAmount)
+                .slice(0, 10);
+
+            const topData = [
+                ['Рейтинг', 'ПІБ лікаря', 'Посада', 'Кількість пацієнтів', 'Сума до сплати (грн)', 'Середній дохід на пацієнта'],
+                ...topDoctors.map((d, index) => [
+                    index + 1,
+                    d.doctorName,
+                    d.doctorPosition,
+                    d.totalPatients,
+                    d.totalAmount,
+                    (d.totalAmount / d.totalPatients).toFixed(2)
+                ])
+            ];
+
+            const wsTop = XLSX.utils.aoa_to_sheet(topData);
+            wsTop['!cols'] = [
+                {wch: 8},  // Рейтинг
+                {wch: 35}, // ПІБ
+                {wch: 25}, // Посада
+                {wch: 18}, // Кількість пацієнтів
+                {wch: 22}, // Сума
+                {wch: 20}  // Середній дохід
+            ];
+
+            // Форматування топ-10
+            for (let row = 0; row < topData.length; row++) {
+                for (let col = 0; col < topData[row].length; col++) {
+                    const cellAddress = XLSX.utils.encode_cell({r: row, c: col});
+                    if (!wsTop[cellAddress]) wsTop[cellAddress] = {};
+                    
+                    if (row === 0) {
+                        // Заголовок
+                        wsTop[cellAddress].s = {
+                            font: {bold: true, color: {rgb: "FFFFFF"}, sz: 12},
+                            fill: {patternType: "solid", fgColor: {rgb: "9B59B6"}},
+                            alignment: {horizontal: "center", vertical: "center", wrapText: true},
+                            border: {
+                                top: {style: "thin", color: {rgb: "000000"}},
+                                bottom: {style: "thin", color: {rgb: "000000"}},
+                                left: {style: "thin", color: {rgb: "000000"}},
+                                right: {style: "thin", color: {rgb: "000000"}}
+                            }
+                        };
+                    } else if (col === 0) {
+                        // Рейтинг
+                        const rankColor = row === 0 ? "FFD700" : row === 1 ? "C0C0C0" : row === 2 ? "CD7F32" : "95A5A6";
+                        wsTop[cellAddress].s = {
+                            font: {bold: true, color: {rgb: "FFFFFF"}, sz: 12},
+                            fill: {patternType: "solid", fgColor: {rgb: rankColor}},
+                            alignment: {horizontal: "center", vertical: "center"},
+                            border: {
+                                top: {style: "thin", color: {rgb: "D0D0D0"}},
+                                bottom: {style: "thin", color: {rgb: "D0D0D0"}},
+                                left: {style: "thin", color: {rgb: "D0D0D0"}},
+                                right: {style: "thin", color: {rgb: "D0D0D0"}}
+                            }
+                        };
+                    } else if (col === 4) {
+                        // Сума
+                        wsTop[cellAddress].s = {
+                            font: {bold: true, color: {rgb: "FFFFFF"}, sz: 11},
+                            fill: {patternType: "solid", fgColor: {rgb: "E67E22"}},
+                            numFmt: "#,##0.00 ₴",
+                            alignment: {horizontal: "right", vertical: "center"},
+                            border: {
+                                top: {style: "thin", color: {rgb: "D0D0D0"}},
+                                bottom: {style: "thin", color: {rgb: "D0D0D0"}},
+                                left: {style: "thin", color: {rgb: "D0D0D0"}},
+                                right: {style: "thin", color: {rgb: "D0D0D0"}}
+                            }
+                        };
+                    } else if (col === 5) {
+                        // Середній дохід
+                        wsTop[cellAddress].s = {
+                            font: {bold: true, color: {rgb: "2C3E50"}, sz: 11},
+                            fill: {patternType: "solid", fgColor: {rgb: "1ABC9C"}},
+                            numFmt: "#,##0.00 ₴",
+                            alignment: {horizontal: "right", vertical: "center"},
+                            border: {
+                                top: {style: "thin", color: {rgb: "D0D0D0"}},
+                                bottom: {style: "thin", color: {rgb: "D0D0D0"}},
+                                left: {style: "thin", color: {rgb: "D0D0D0"}},
+                                right: {style: "thin", color: {rgb: "D0D0D0"}}
+                            }
+                        };
+                    } else {
+                        // Інші колонки
+                        wsTop[cellAddress].s = {
+                            font: {color: {rgb: "2C3E50"}, sz: 10},
+                            fill: {patternType: "solid", fgColor: {rgb: "F8F9FA"}},
+                            alignment: {vertical: "center", wrapText: true},
+                            border: {
+                                top: {style: "thin", color: {rgb: "D0D0D0"}},
+                                bottom: {style: "thin", color: {rgb: "D0D0D0"}},
+                                left: {style: "thin", color: {rgb: "D0D0D0"}},
+                                right: {style: "thin", color: {rgb: "D0D0D0"}}
+                            }
+                        };
+                    }
+                }
+            }
+
+            XLSX.utils.book_append_sheet(wb, wsTop, "Топ-10 лікарів");
+
+            // === Сторінка 4: Аналіз помилок (якщо є дані) ===
+            if (errorData && Object.keys(errorData).length > 0) {
+                const errorRows = [];
+                errorRows.push(['ПІБ лікаря', 'Кількість помилок', 'Унікальні пацієнти', 'Список помилок', 'Типи помилок']);
+                
+                Object.keys(errorData).forEach(doctorName => {
+                    const errors = errorData[doctorName];
+                    const uniquePatients = new Set(errors.map(e => e.patientId)).size;
+                    const errorTypes = [...new Set(errors.map(e => e.comment))];
+                    
+                    errorRows.push([
+                        doctorName,
+                        errors.length,
+                        uniquePatients,
+                        errors.slice(0, 3).map(e => e.comment).join('; '),
+                        errorTypes.slice(0, 2).join('; ')
+                    ]);
+                });
+
+                const wsErrors = XLSX.utils.aoa_to_sheet(errorRows);
+                wsErrors['!cols'] = [
+                    {wch: 35}, // ПІБ лікаря
+                    {wch: 18}, // Кількість помилок
+                    {wch: 18}, // Унікальні пацієнти
+                    {wch: 40}, // Список помилок
+                    {wch: 30}  // Типи помилок
+                ];
+
+                // Форматування помилок
+                for (let row = 0; row < errorRows.length; row++) {
+                    for (let col = 0; col < errorRows[row].length; col++) {
+                        const cellAddress = XLSX.utils.encode_cell({r: row, c: col});
+                        if (!wsErrors[cellAddress]) wsErrors[cellAddress] = {};
+                        
+                        if (row === 0) {
+                            // Заголовок
+                            wsErrors[cellAddress].s = {
+                                font: {bold: true, color: {rgb: "FFFFFF"}, sz: 12},
+                                fill: {fgColor: {rgb: "E74C3C"}, patternType: "solid"},
+                                alignment: {horizontal: "center", vertical: "center", wrapText: true},
+                                border: {
+                                    top: {style: "thin", color: {rgb: "000000"}},
+                                    bottom: {style: "thin", color: {rgb: "000000"}},
+                                    left: {style: "thin", color: {rgb: "000000"}},
+                                    right: {style: "thin", color: {rgb: "000000"}}
+                                }
+                            };
+                        } else if (col === 1 || col === 2) {
+                            // Числові дані
+                            wsErrors[cellAddress].s = {
+                                font: {bold: true, color: {rgb: "FFFFFF"}, sz: 11},
+                                fill: {fgColor: {rgb: "E74C3C"}, patternType: "solid"},
+                                alignment: {horizontal: "center", vertical: "center"},
+                                border: {
+                                    top: {style: "thin", color: {rgb: "D0D0D0"}},
+                                    bottom: {style: "thin", color: {rgb: "D0D0D0"}},
+                                    left: {style: "thin", color: {rgb: "D0D0D0"}},
+                                    right: {style: "thin", color: {rgb: "D0D0D0"}}
+                                }
+                            };
+                        } else {
+                            // Текстові дані
+                            wsErrors[cellAddress].s = {
+                                font: {color: {rgb: "2C3E50"}, sz: 10},
+                                fill: {fgColor: {rgb: "FADBD8"}, patternType: "solid"},
+                                alignment: {horizontal: "left", vertical: "center", wrapText: true},
+                                border: {
+                                    top: {style: "thin", color: {rgb: "D0D0D0"}},
+                                    bottom: {style: "thin", color: {rgb: "D0D0D0"}},
+                                    left: {style: "thin", color: {rgb: "D0D0D0"}},
+                                    right: {style: "thin", color: {rgb: "D0D0D0"}}
+                                }
+                            };
+                        }
+                    }
+                }
+
+                wsErrors['!autofilter'] = { ref: wsErrors['!ref'] };
+                XLSX.utils.book_append_sheet(wb, wsErrors, "Аналіз помилок");
+            }
+
+            // Налаштування властивостей workbook
+            wb.Props = {
+                Title: "Професійний медичний звіт",
+                Subject: "Аналіз лікарів та пацієнтів з професійним оформленням",
+                Author: "Медична інформаційна система",
+                CreatedDate: new Date(),
+                Company: "Медичний заклад"
+            };
+
+            // Завантажуємо файл
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+            XLSX.writeFile(wb, `Професійний_медичний_звіт_${timestamp}.xlsx`);
+            
+            showMessage('✅ Професійний Excel файл успішно створено з кольоровим оформленням та межами!', 'success');
+        }
+
+        function switchTab(tabName) {
+            // Оновлюємо кнопки вкладок
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.dataset.tab === tabName) {
+                    tab.classList.add('active');
+                }
+            });
+
+            // Оновлюємо вміст вкладок
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        function showMessage(message, type) {
+            const existingMessage = document.querySelector('.error-message, .success-message');
+            if (existingMessage) {
+                existingMessage.remove();
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type === 'error' ? 'error-message' : 'success-message';
+            messageDiv.textContent = message;
+            
+            const uploadSection = document.querySelector('.upload-section');
+            uploadSection.insertBefore(messageDiv, uploadSection.firstChild);
+
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
