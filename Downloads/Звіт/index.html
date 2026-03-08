@@ -1991,16 +1991,11 @@ th.sortable:active {
             const results = [];
             Object.keys(doctorsData).forEach(doctorName => {
                 const doctorData = doctorsData[doctorName];
-                
-                // Додаємо помилки для цього лікаря
-                const doctorErrors = errorData ? errorData.filter(error => error.doctorName === doctorName) : [];
-                
                 results.push({
                     doctorName: doctorName,
                     doctorPosition: doctorData.position,
                     totalPatients: doctorData.patients.size,
                     totalAmount: doctorData.totalAmount,
-                    errors: doctorErrors,
                     patients: Array.from(doctorData.patients).map(id => ({
                         id: id,
                         amount: patientAmounts[id] || 0
@@ -3345,16 +3340,11 @@ th.sortable:active {
             const results = [];
             Object.keys(doctorsData).forEach(doctorName => {
                 const doctorData = doctorsData[doctorName];
-                
-                // Додаємо помилки для цього лікаря
-                const doctorErrors = errorData ? errorData.filter(error => error.doctorName === doctorName) : [];
-                
                 results.push({
                     doctorName: doctorName,
                     doctorPosition: doctorData.position,
                     totalPatients: doctorData.patients.size,
                     totalAmount: doctorData.totalAmount,
-                    errors: doctorErrors,
                     patients: Array.from(doctorData.patients).map(id => ({
                         id: id,
                         amount: 0
@@ -3371,8 +3361,18 @@ th.sortable:active {
         }
 
         function showSummary() {
+            const tbody = document.getElementById('summaryTableBody');
+            
             if (!processedData || !processedData.doctors) {
-                document.getElementById('summaryTableBody').innerHTML = '<tr><td colspan="2" style="text-align: center; padding: 50px;">Немає даних для відображення</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="2" style="text-align: center; padding: 50px; color: #666;">Немає даних для відображення. Завантажте файли та натисніть "Обробити дані"</td></tr>';
+                
+                // Оновлюємо картки нулями
+                document.getElementById('summaryTotalDoctors').textContent = '0';
+                document.getElementById('summaryTotalPatients').textContent = '0';
+                document.getElementById('summaryTotalAmount').textContent = '0,00';
+                document.getElementById('summaryAvgAmount').textContent = '0,00';
+                document.getElementById('summaryTotalErrors').textContent = '0';
+                document.getElementById('summaryTotalRecords').textContent = '0';
                 return;
             }
 
@@ -3383,7 +3383,7 @@ th.sortable:active {
             // Оновлюємо статистичні картки
             const totalPatients = doctors.reduce((sum, d) => sum + d.totalPatients, 0);
             const totalAmount = doctors.reduce((sum, d) => sum + d.totalAmount, 0);
-            const totalRecords = doctors.reduce((sum, d) => sum + d.totalPatients, 0); // Всі медичні записи, не тільки помилки
+            const totalRecords = doctors.reduce((sum, d) => sum + (d.errors ? d.errors.length : 0), 0);
             const avgAmount = doctors.length > 0 ? (totalAmount / doctors.length).toFixed(2) : '0.00';
 
             document.getElementById('summaryTotalDoctors').textContent = doctors.length;
@@ -3394,29 +3394,25 @@ th.sortable:active {
             document.getElementById('summaryTotalRecords').textContent = totalRecords;
 
             // Створюємо таблицю з лікарями та кількістю помилок
-            const tbody = document.getElementById('summaryTableBody');
-            tbody.innerHTML = '';
+            const summaryTableBody = document.getElementById('summaryTableBody');
+            summaryTableBody.innerHTML = '';
 
-            console.log('Doctors data:', doctors); // Відлагодження
-
-            doctors.forEach((doctor, index) => {
+            doctors.forEach((doctor) => {
                 const errorCount = doctor.errors ? doctor.errors.length : 0;
-                
-                console.log(`Doctor ${index}: ${doctor.doctorName}, errors: ${errorCount}`); // Відлагодження
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td><strong>${doctor.doctorName || 'Невідомий лікар'}</strong></td>
+                    <td><strong>${doctor.doctorName}</strong></td>
                     <td style="text-align: center; font-weight: bold; color: ${errorCount > 0 ? '#e74c3c' : '#27ae60'}">${errorCount}</td>
                 `;
-                tbody.appendChild(row);
+                summaryTableBody.appendChild(row);
             });
 
             // Додаємо пошук
             const searchBox = document.getElementById('summarySearchBox');
             searchBox.addEventListener('input', (e) => {
                 const searchTerm = e.target.value.toLowerCase();
-                const rows = tbody.getElementsByTagName('tr');
+                const rows = summaryTableBody.getElementsByTagName('tr');
                 
                 Array.from(rows).forEach(row => {
                     const doctorName = row.cells[0].textContent.toLowerCase();
@@ -3433,6 +3429,15 @@ th.sortable:active {
         function updateSummaryTab() {
             showSummary();
         }
+
+        // Викликаємо showSummary() при завантаженні сторінки для вкладки summary
+        document.addEventListener('DOMContentLoaded', function() {
+            // Перевіряємо, чи активна вкладка summary при завантаженні
+            const summaryTab = document.getElementById('summary');
+            if (summaryTab && summaryTab.classList.contains('active')) {
+                showSummary();
+            }
+        });
 
     </script>
 </body>
