@@ -1656,14 +1656,15 @@ th.sortable:active {
             const uploadArea2 = document.getElementById('uploadArea2');
             
             // Перевіряємо, чи є файли
-            const hasFile1 = Object.keys(uploadedFiles).length > 0;
+            const fileCount = Object.keys(uploadedFiles).length;
             
-            if (!hasFile1) {
+            if (fileCount === 0) {
                 uploadArea1.classList.remove('uploaded');
                 uploadArea1.querySelector('.upload-text').textContent = 'Повний звіт від НСЗУ';
-            }
-            
-            if (Object.keys(uploadedFiles).length <= 1) {
+                uploadArea2.classList.remove('uploaded');
+                uploadArea2.querySelector('.upload-text').textContent = 'Розшифровка пацієнтів';
+            } else if (fileCount === 1) {
+                // Скидаємо тільки другу кнопку, якщо файлів менше двох
                 uploadArea2.classList.remove('uploaded');
                 uploadArea2.querySelector('.upload-text').textContent = 'Розшифровка пацієнтів';
             }
@@ -1705,11 +1706,14 @@ th.sortable:active {
                 processButton.textContent = 'Обробити два файли';
             }
             
-            // Ховаємо секцію завантаження коли файли завантажені
-            if (Object.keys(uploadedFiles).length >= 1) {
+            // Ховаємо секцію завантаження тільки коли завантажено два файли
+            if (Object.keys(uploadedFiles).length >= 2) {
                 setTimeout(() => {
                     uploadSection.style.display = 'none';
                 }, 1500); // Затримка 1.5 секунди для візуального підтвердження
+            } else {
+                // Показуємо секцію якщо менше двох файлів
+                uploadSection.style.display = 'block';
             }
         }
 
