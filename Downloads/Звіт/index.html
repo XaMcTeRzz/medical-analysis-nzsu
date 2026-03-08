@@ -1991,11 +1991,16 @@ th.sortable:active {
             const results = [];
             Object.keys(doctorsData).forEach(doctorName => {
                 const doctorData = doctorsData[doctorName];
+                
+                // Додаємо помилки для цього лікаря
+                const doctorErrors = errorData ? errorData.filter(error => error.doctorName === doctorName) : [];
+                
                 results.push({
                     doctorName: doctorName,
                     doctorPosition: doctorData.position,
                     totalPatients: doctorData.patients.size,
                     totalAmount: doctorData.totalAmount,
+                    errors: doctorErrors,
                     patients: Array.from(doctorData.patients).map(id => ({
                         id: id,
                         amount: patientAmounts[id] || 0
@@ -3340,11 +3345,16 @@ th.sortable:active {
             const results = [];
             Object.keys(doctorsData).forEach(doctorName => {
                 const doctorData = doctorsData[doctorName];
+                
+                // Додаємо помилки для цього лікаря
+                const doctorErrors = errorData ? errorData.filter(error => error.doctorName === doctorName) : [];
+                
                 results.push({
                     doctorName: doctorName,
                     doctorPosition: doctorData.position,
                     totalPatients: doctorData.patients.size,
                     totalAmount: doctorData.totalAmount,
+                    errors: doctorErrors,
                     patients: Array.from(doctorData.patients).map(id => ({
                         id: id,
                         amount: 0
@@ -3362,7 +3372,7 @@ th.sortable:active {
 
         function showSummary() {
             if (!processedData || !processedData.doctors) {
-                document.getElementById('summaryTableBody').innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 50px;">Немає даних для відображення</td></tr>';
+                document.getElementById('summaryTableBody').innerHTML = '<tr><td colspan="2" style="text-align: center; padding: 50px;">Немає даних для відображення</td></tr>';
                 return;
             }
 
