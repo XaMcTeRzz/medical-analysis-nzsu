@@ -1392,6 +1392,18 @@ th.sortable:active {
 
                 <div class="data-table modern-table full-width-table">
                     <h3 style="text-align: center; margin-bottom: 20px; color: #2e7d32;">ПІБ лікарів та кількість помилок</h3>
+                    
+                    <!-- Фільтр по класу взаємодії -->
+                    <div class="filter-section" style="margin-bottom: 20px; text-align: center;">
+                        <label style="margin-right: 10px; font-weight: bold;">Фільтр по класу взаємодії:</label>
+                        <select id="classFilter" class="modern-selector" style="margin-right: 10px;">
+                            <option value="all">Всі</option>
+                            <option value="амб">Амбулаторний</option>
+                            <option value="стаціонар">Стаціонарний</option>
+                        </select>
+                        <button id="applyClassFilter" class="process-button" style="padding: 8px 16px; font-size: 14px;">Застосувати фільтр</button>
+                    </div>
+                    
                     <input type="text" class="modern-search" id="summarySearchBox" placeholder="Пошук лікаря за ПІБ...">
                     <table>
                         <thead>
@@ -2015,12 +2027,16 @@ th.sortable:active {
             // Знаходимо індекс колонки "Деталі виявлених невідповідностей"
             const detailsIndex = headers.findIndex(h => h && String(h).includes('Деталі виявлених невідповідностей, які потребують додаткової перевірки та верифікації з боку надавача послуг'));
             
+            // Знаходимо індекс колонки "Клас взаємодії"
+            const classInteractionIndex = headers.findIndex(h => h && String(h).includes('Клас взаємодії'));
+            
             fullRows.forEach(row => {
                 const doctorName = String(row[doctorNameIndex] || '').trim();
                 const patientId = String(row[patientIdIndex] || '').trim();
                 const emzId = emzIdIndex >= 0 ? String(row[emzIdIndex] || '').trim() : '';
                 const errorComment = errorCommentIndex >= 0 ? String(row[errorCommentIndex] || '').trim() : '';
                 const details = detailsIndex >= 0 ? String(row[detailsIndex] || '').trim() : '';
+                const classInteraction = classInteractionIndex >= 0 ? String(row[classInteractionIndex] || '').trim() : '';
                 
                 // Перевіряємо, чи є помилка (непорожній коментар)
                 if (doctorName && doctorName !== '-' && errorComment && errorComment !== '' && errorComment !== '-') {
@@ -2032,7 +2048,8 @@ th.sortable:active {
                         patientId: patientId,
                         emzId: emzId,
                         comment: errorComment,
-                        details: details // Додаємо деталі
+                        details: details, // Додаємо деталі
+                        classInteraction: classInteraction // Додаємо клас взаємодії
                     });
                 }
             });
@@ -3377,16 +3394,37 @@ th.sortable:active {
             }
 
             const doctors = processedData.doctors;
-            const totalErrors = doctors.reduce((sum, d) => sum + (d.errors ? d.errors.length : 0), 0);
-            const avgErrors = doctors.length > 0 ? (totalErrors / doctors.length).toFixed(1) : 0;
+            const classFilter = document.getElementById('classFilter').value;
+            
+            // Фільтруємо помилки по класу взаємодії
+            let filteredDoctors = doctors.map(doctor => {
+                const filteredErrors = doctor.errors ? doctor.errors.filter(error => {
+                    if (!error.classInteraction) return true; // Якщо немає класу, показуємо
+                    const classLower = error.classInteraction.toLowerCase();
+                    
+                    if (classFilter === 'all') return true;
+                    if (classFilter === 'амб' && classLower.includes('амб')) return true;
+                    if (classFilter === 'стаціонар' && classLower.includes('стаціонар')) return true;
+                    
+                    return false;
+                }) : [];
+                
+                return {
+                    ...doctor,
+                    errors: filteredErrors
+                };
+            });
+
+            const totalErrors = filteredDoctors.reduce((sum, d) => sum + (d.errors ? d.errors.length : 0), 0);
+            const avgErrors = filteredDoctors.length > 0 ? (totalErrors / filteredDoctors.length).toFixed(1) : 0;
 
             // Оновлюємо статистичні картки
-            const totalPatients = doctors.reduce((sum, d) => sum + d.totalPatients, 0);
-            const totalAmount = doctors.reduce((sum, d) => sum + d.totalAmount, 0);
-            const totalRecords = doctors.reduce((sum, d) => sum + (d.errors ? d.errors.length : 0), 0);
-            const avgAmount = doctors.length > 0 ? (totalAmount / doctors.length).toFixed(2) : '0.00';
+            const totalPatients = filteredDoctors.reduce((sum, d) => sum + d.totalPatients, 0);
+            const totalAmount = filteredDoctors.reduce((sum, d) => sum + d.totalAmount, 0);
+            const totalRecords = filteredDoctors.reduce((sum, d) => sum + (d.errors ? d.errors.length : 0), 0);
+            const avgAmount = filteredDoctors.length > 0 ? (totalAmount / filteredDoctors.length).toFixed(2) : '0.00';
 
-            document.getElementById('summaryTotalDoctors').textContent = doctors.length;
+            document.getElementById('summaryTotalDoctors').textContent = filteredDoctors.length;
             document.getElementById('summaryTotalPatients').textContent = totalPatients;
             document.getElementById('summaryTotalAmount').textContent = totalAmount.toFixed(2);
             document.getElementById('summaryAvgAmount').textContent = avgAmount;
@@ -3397,8 +3435,16 @@ th.sortable:active {
             const summaryTableBody = document.getElementById('summaryTableBody');
             summaryTableBody.innerHTML = '';
 
-            doctors.forEach((doctor) => {
-                const errorCount = doctor.errors ? doctor.errors.length : 0;
+            // Показуємо тільки лікарів з помилками після фільтрації
+            const doctorsWithErrors = filteredDoctors.filter(doctor => doctor.errors && doctor.errors.length > 0);
+
+            if (doctorsWithErrors.length === 0) {
+                summaryTableBody.innerHTML = '<tr><td colspan="2" style="text-align: center; padding: 30px; color: #666;">Немає помилок для вибраного фільтра</td></tr>';
+                return;
+            }
+
+            doctorsWithErrors.forEach((doctor) => {
+                const errorCount = doctor.errors.length;
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
@@ -3425,6 +3471,23 @@ th.sortable:active {
                 });
             });
         }
+
+        // Додаємо обробник для фільтра по класу взаємодії
+        document.addEventListener('DOMContentLoaded', function() {
+            const applyFilterBtn = document.getElementById('applyClassFilter');
+            const classFilter = document.getElementById('classFilter');
+            
+            if (applyFilterBtn && classFilter) {
+                applyFilterBtn.addEventListener('click', function() {
+                    showSummary(); // Перевикликаємо showSummary() з новим фільтром
+                });
+                
+                // Так оновлюємо при зміні селектора
+                classFilter.addEventListener('change', function() {
+                    showSummary();
+                });
+            }
+        });
 
         function updateSummaryTab() {
             showSummary();
