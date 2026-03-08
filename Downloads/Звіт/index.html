@@ -1287,18 +1287,18 @@ th.sortable:active {
             <div class="upload-container">
                 <div class="upload-box">
                     <div class="upload-area" id="uploadArea1">
-                        <div class="upload-icon">�</div>
-                        <div class="upload-text">Звіт з розшифровкою від НСЗУ</div>
-                        <div class="upload-hint">Файл: Січень повна.xlsx</div>
+                        <div class="upload-icon">📊</div>
+                        <div class="upload-text">Повний звіт від НСЗУ</div>
+                        <div class="upload-hint">Будь-який Excel файл (.xlsx, .xls)</div>
                         <input type="file" id="fileInput1" class="file-input" accept=".xlsx,.xls">
                     </div>
                 </div>
                 
                 <div class="upload-box">
                     <div class="upload-area" id="uploadArea2">
-                        <div class="upload-icon"></div>
-                        <div class="upload-text">Розшифровка пацієнтів включених до звіту (Сума грн)</div>
-                        <div class="upload-hint">Файл: Звіт_по_включеним_тижням_по_пацієнтам_СІЧЕНЬ.xlsx</div>
+                        <div class="upload-icon">📋</div>
+                        <div class="upload-text">Розшифровка пацієнтів</div>
+                        <div class="upload-hint">Будь-який Excel файл (.xlsx, .xls)</div>
                         <input type="file" id="fileInput2" class="file-input" accept=".xlsx,.xls">
                     </div>
                 </div>
@@ -1655,18 +1655,17 @@ th.sortable:active {
             const uploadArea1 = document.getElementById('uploadArea1');
             const uploadArea2 = document.getElementById('uploadArea2');
             
-            // Перевіряємо, чи є файли відповідного типу
-            const hasFullFile = Object.keys(uploadedFiles).some(name => name.includes('Січень повна'));
-            const hasReportFile = Object.keys(uploadedFiles).some(name => name.includes('Звіт_по_включеним'));
+            // Перевіряємо, чи є файли
+            const hasFile1 = Object.keys(uploadedFiles).length > 0;
             
-            if (!hasFullFile) {
+            if (!hasFile1) {
                 uploadArea1.classList.remove('uploaded');
-                uploadArea1.querySelector('.upload-text').textContent = 'Звіт з розшифровкою від НСЗУ';
+                uploadArea1.querySelector('.upload-text').textContent = 'Повний звіт від НСЗУ';
             }
             
-            if (!hasReportFile) {
+            if (Object.keys(uploadedFiles).length <= 1) {
                 uploadArea2.classList.remove('uploaded');
-                uploadArea2.querySelector('.upload-text').textContent = 'Розшифровка пацієнтів включених до звіту (Сума грн)';
+                uploadArea2.querySelector('.upload-text').textContent = 'Розшифровка пацієнтів';
             }
         }
 
@@ -1692,13 +1691,22 @@ th.sortable:active {
         function updateProcessButton() {
             const processButton = document.getElementById('processButton');
             const uploadSection = document.querySelector('.upload-section');
-            const hasFullFile = Object.keys(uploadedFiles).some(name => name.includes('Січень повна'));
-            const hasReportFile = Object.keys(uploadedFiles).some(name => name.includes('Звіт_по_включеним'));
+            const hasFile1 = Object.keys(uploadedFiles).length > 0;
+            const hasFile2 = Object.keys(uploadedFiles).length > 1;
             
-            processButton.disabled = !(hasFullFile && hasReportFile);
+            // Дозволяємо обробку якщо є хоча б один файл
+            processButton.disabled = !(hasFile1);
             
-            // Ховаємо секцію завантаження коли обидва файли завантажені
-            if (hasFullFile && hasReportFile) {
+            if (Object.keys(uploadedFiles).length === 0) {
+                processButton.textContent = 'Обробити дані';
+            } else if (Object.keys(uploadedFiles).length === 1) {
+                processButton.textContent = 'Обробити один файл';
+            } else {
+                processButton.textContent = 'Обробити два файли';
+            }
+            
+            // Ховаємо секцію завантаження коли файли завантажені
+            if (Object.keys(uploadedFiles).length >= 1) {
                 setTimeout(() => {
                     uploadSection.style.display = 'none';
                 }, 1500); // Затримка 1.5 секунди для візуального підтвердження
@@ -1719,29 +1727,29 @@ th.sortable:active {
             processButton.innerHTML = '⏳ Обробка...';
 
             try {
-                // Знаходимо файли
-                const fullFileName = Object.keys(uploadedFiles).find(name => name.includes('Січень повна'));
-                const reportFileName = Object.keys(uploadedFiles).find(name => name.includes('Звіт_по_включеним'));
-
-                if (!fullFileName || !reportFileName) {
-                    throw new Error('Не знайдено необхідні файли');
+                // Беремо перші два завантажені файли
+                const fileNames = Object.keys(uploadedFiles);
+                
+                if (fileNames.length === 0) {
+                    throw new Error('Немає завантажених файлів');
                 }
 
-                // Читаємо файли
-                const fullFile = uploadedFiles[fullFileName];
-                const reportFile = uploadedFiles[reportFileName];
+                const file1 = uploadedFiles[fileNames[0]];
+                const file2 = fileNames.length > 1 ? uploadedFiles[fileNames[1]] : null;
 
-                const fullData = await readExcelFile(fullFile);
-                const reportData = await readExcelFile(reportFile);
+                // Читаємо файли
+                const data1 = await readExcelFile(file1);
+                const data2 = file2 ? await readExcelFile(file2) : null;
 
                 // Обробляємо дані
-                processedData = processExcelData(fullData, reportData);
+                processedData = processExcelData(data1, data2);
 
                 // Показуємо результати
                 showResults();
                 
                 // Показуємо успішне повідомлення
-                showMessage('✅ Дані успішно оброблено!', 'success');
+                const fileCountText = file2 ? 'два файли' : 'один файл';
+                showMessage(`✅ Успішно оброблено ${fileCountText}!`, 'success');
 
             } catch (error) {
                 showMessage(`❌ Помилка: ${error.message}`, 'error');
@@ -1776,73 +1784,116 @@ th.sortable:active {
             });
         }
 
-        function processExcelData(fullData, reportData) {
-            // Знаходимо заголовки в повному файлі
-            let fullHeaderRow = -1;
-            for (let i = 0; i < Math.min(10, fullData.length); i++) {
-                for (let j = 0; j < fullData[i].length; j++) {
-                    if (fullData[i][j] && String(fullData[i][j]).includes('Унікальний код пацієнта')) {
-                        fullHeaderRow = i;
+        function processExcelData(data1, data2) {
+            // Якщо другий файл відсутній, працюємо тільки з першим
+            if (!data2) {
+                return processSingleFile(data1);
+            }
+
+            // Знаходимо заголовки в першому файлі
+            let headerRow1 = -1;
+            for (let i = 0; i < Math.min(10, data1.length); i++) {
+                for (let j = 0; j < data1[i].length; j++) {
+                    if (data1[i][j] && (
+                        String(data1[i][j]).includes('Унікальний код пацієнта') ||
+                        String(data1[i][j]).includes('ID пацієнта') ||
+                        String(data1[i][j]).includes('Код пацієнта')
+                    )) {
+                        headerRow1 = i;
                         break;
                     }
                 }
-                if (fullHeaderRow >= 0) break;
+                if (headerRow1 >= 0) break;
             }
 
-            // Знаходимо заголовки в файлі звіту
-            let reportHeaderRow = -1;
-            for (let i = 0; i < Math.min(10, reportData.length); i++) {
-                for (let j = 0; j < reportData[i].length; j++) {
-                    if (reportData[i][j] && String(reportData[i][j]).includes('ID пацієнта')) {
-                        reportHeaderRow = i;
+            // Знаходимо заголовки в другому файлі
+            let headerRow2 = -1;
+            for (let i = 0; i < Math.min(10, data2.length); i++) {
+                for (let j = 0; j < data2[i].length; j++) {
+                    if (data2[i][j] && (
+                        String(data2[i][j]).includes('ID пацієнта') ||
+                        String(data2[i][j]).includes('Унікальний код пацієнта') ||
+                        String(data2[i][j]).includes('Код пацієнта')
+                    )) {
+                        headerRow2 = i;
                         break;
                     }
                 }
-                if (reportHeaderRow >= 0) break;
+                if (headerRow2 >= 0) break;
             }
 
-            if (fullHeaderRow < 0 || reportHeaderRow < 0) {
-                throw new Error('Не знайдено заголовки у файлах');
+            if (headerRow1 < 0) {
+                throw new Error('Не знайдено заголовки у першому файлі');
             }
 
-            // Отримуємо дані з заголовками
-            const fullHeaders = fullData[fullHeaderRow];
-            const fullRows = fullData.slice(fullHeaderRow + 1).filter(row => row.length > 0 && row[0]);
+            // Отримуємо дані
+            const headers1 = data1[headerRow1];
+            const rows1 = data1.slice(headerRow1 + 1).filter(row => row.length > 0 && row[0]);
             
-            const reportHeaders = reportData[reportHeaderRow];
-            const reportRows = reportData.slice(reportHeaderRow + 1).filter(row => row.length > 0 && row[0]);
+            let headers2 = null;
+            let rows2 = [];
+            if (headerRow2 >= 0) {
+                headers2 = data2[headerRow2];
+                rows2 = data2.slice(headerRow2 + 1).filter(row => row.length > 0 && row[0]);
+            }
 
             // Знаходимо індекси стовпців для основних даних
-            const patientIdIndex = fullHeaders.findIndex(h => h && String(h).includes('Унікальний код пацієнта'));
-            const doctorNameIndex = fullHeaders.findIndex(h => h && String(h).includes('Медичний працівник'));
-            const doctorPositionIndex = fullHeaders.findIndex(h => h && String(h).includes('Посада медичного працівника'));
-            const emzIdIndex = fullHeaders.findIndex(h => h && String(h).includes('ID ЕМЗ'));
-            const errorCommentIndex = fullHeaders.findIndex(h => h && String(h).includes('Коментар щодо виявлених помилок'));
+            const patientIdIndex = headers1.findIndex(h => h && (
+                String(h).includes('Унікальний код пацієнта') ||
+                String(h).includes('ID пацієнта') ||
+                String(h).includes('Код пацієнта')
+            ));
+            const doctorNameIndex = headers1.findIndex(h => h && (
+                String(h).includes('Медичний працівник') ||
+                String(h).includes('ПІБ лікаря') ||
+                String(h).includes('Лікар')
+            ));
+            const doctorPositionIndex = headers1.findIndex(h => h && (
+                String(h).includes('Посада медичного працівника') ||
+                String(h).includes('Посада')
+            ));
+            const emzIdIndex = headers1.findIndex(h => h && String(h).includes('ID ЕМЗ'));
+            const errorCommentIndex = headers1.findIndex(h => h && String(h).includes('Коментар щодо виявлених помилок'));
 
-            const reportPatientIdIndex = reportHeaders.findIndex(h => h && String(h).includes('ID пацієнта'));
-            const reportAmountIndex = reportHeaders.findIndex(h => h && String(h).includes('До сплати'));
+            let reportPatientIdIndex = -1;
+            let reportAmountIndex = -1;
+            
+            if (headers2) {
+                reportPatientIdIndex = headers2.findIndex(h => h && (
+                    String(h).includes('ID пацієнта') ||
+                    String(h).includes('Унікальний код пацієнта') ||
+                    String(h).includes('Код пацієнта')
+                ));
+                reportAmountIndex = headers2.findIndex(h => h && (
+                    String(h).includes('До сплати') ||
+                    String(h).includes('Сума') ||
+                    String(h).includes('Сума грн')
+                ));
+            }
 
-            if (patientIdIndex < 0 || reportPatientIdIndex < 0) {
-                throw new Error('Не знайдено необхідні стовпці');
+            if (patientIdIndex < 0) {
+                throw new Error('Не знайдено стовпець з ID пацієнта у першому файлі');
             }
 
             // Аналіз помилок
-            errorData = analyzeErrors(fullRows, fullHeaders, patientIdIndex, doctorNameIndex, emzIdIndex, errorCommentIndex);
+            errorData = analyzeErrors(rows1, headers1, patientIdIndex, doctorNameIndex, emzIdIndex, errorCommentIndex);
 
-            // Створюємо словник пацієнтів з сумами
+            // Створюємо словник пацієнтів з сумами (якщо є другий файл)
             const patientAmounts = {};
-            reportRows.forEach(row => {
-                if (row[reportPatientIdIndex] && row[reportAmountIndex]) {
-                    const patientId = String(row[reportPatientIdIndex]).trim();
-                    const amount = parseFloat(row[reportAmountIndex]) || 0;
-                    patientAmounts[patientId] = amount;
-                }
-            });
+            if (reportPatientIdIndex >= 0 && reportAmountIndex >= 0) {
+                rows2.forEach(row => {
+                    if (row[reportPatientIdIndex] && row[reportAmountIndex]) {
+                        const patientId = String(row[reportPatientIdIndex]).trim();
+                        const amount = parseFloat(row[reportAmountIndex]) || 0;
+                        patientAmounts[patientId] = amount;
+                    }
+                });
+            }
 
             // Групуємо дані по лікарях
             const doctorsData = {};
             
-            fullRows.forEach(row => {
+            rows1.forEach(row => {
                 const patientId = String(row[patientIdIndex] || '').trim();
                 const doctorName = String(row[doctorNameIndex] || '').trim();
                 const doctorPosition = String(row[doctorPositionIndex] || 'Невідомо').trim();
@@ -3137,6 +3188,99 @@ th.sortable:active {
                 messageDiv.remove();
             }, 5000);
         }
+
+        function processSingleFile(data) {
+            // Знаходимо заголовки
+            let headerRow = -1;
+            for (let i = 0; i < Math.min(10, data.length); i++) {
+                for (let j = 0; j < data[i].length; j++) {
+                    if (data[i][j] && (
+                        String(data[i][j]).includes('Унікальний код пацієнта') ||
+                        String(data[i][j]).includes('ID пацієнта') ||
+                        String(data[i][j]).includes('Код пацієнта')
+                    )) {
+                        headerRow = i;
+                        break;
+                    }
+                }
+                if (headerRow >= 0) break;
+            }
+
+            if (headerRow < 0) {
+                throw new Error('Не знайдено заголовки у файлі');
+            }
+
+            const headers = data[headerRow];
+            const rows = data.slice(headerRow + 1).filter(row => row.length > 0 && row[0]);
+
+            // Знаходимо індекси стовпців
+            const patientIdIndex = headers.findIndex(h => h && (
+                String(h).includes('Унікальний код пацієнта') ||
+                String(h).includes('ID пацієнта') ||
+                String(h).includes('Код пацієнта')
+            ));
+            const doctorNameIndex = headers.findIndex(h => h && (
+                String(h).includes('Медичний працівник') ||
+                String(h).includes('ПІБ лікаря') ||
+                String(h).includes('Лікар')
+            ));
+            const doctorPositionIndex = headers.findIndex(h => h && (
+                String(h).includes('Посада медичного працівника') ||
+                String(h).includes('Посада')
+            ));
+
+            if (patientIdIndex < 0) {
+                throw new Error('Не знайдено стовпець з ID пацієнта');
+            }
+
+            // Аналіз помилок
+            errorData = analyzeErrors(rows, headers, patientIdIndex, doctorNameIndex, -1, -1);
+
+            // Групуємо дані по лікарях
+            const doctorsData = {};
+            
+            rows.forEach(row => {
+                const patientId = String(row[patientIdIndex] || '').trim();
+                const doctorName = String(row[doctorNameIndex] || '').trim();
+                const doctorPosition = String(row[doctorPositionIndex] || 'Невідомо').trim();
+
+                if (patientId && doctorName && doctorName !== '-' && doctorName.split(' ').length >= 2) {
+                    if (!doctorsData[doctorName]) {
+                        doctorsData[doctorName] = {
+                            position: doctorPosition,
+                            patients: new Set(),
+                            totalAmount: 0
+                        };
+                    }
+                    
+                    doctorsData[doctorName].patients.add(patientId);
+                }
+            });
+
+            // Конвертуємо в масив результатів
+            const results = [];
+            Object.keys(doctorsData).forEach(doctorName => {
+                const doctorData = doctorsData[doctorName];
+                results.push({
+                    doctorName: doctorName,
+                    doctorPosition: doctorData.position,
+                    totalPatients: doctorData.patients.size,
+                    totalAmount: doctorData.totalAmount,
+                    patients: Array.from(doctorData.patients).map(id => ({
+                        id: id,
+                        amount: 0
+                    }))
+                });
+            });
+
+            return {
+                doctors: results,
+                totalPatients: results.reduce((sum, d) => sum + d.totalPatients, 0),
+                totalAmount: results.reduce((sum, d) => sum + d.totalAmount, 0),
+                errors: errorData
+            };
+        }
+
     </script>
 </body>
 </html>
