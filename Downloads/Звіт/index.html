@@ -3373,7 +3373,7 @@ th.sortable:active {
             // Оновлюємо статистичні картки
             const totalPatients = doctors.reduce((sum, d) => sum + d.totalPatients, 0);
             const totalAmount = doctors.reduce((sum, d) => sum + d.totalAmount, 0);
-            const totalRecords = doctors.reduce((sum, d) => sum + (d.errors ? d.errors.length : 0), 0);
+            const totalRecords = doctors.reduce((sum, d) => sum + d.totalPatients, 0); // Всі медичні записи, не тільки помилки
             const avgAmount = doctors.length > 0 ? (totalAmount / doctors.length).toFixed(2) : '0.00';
 
             document.getElementById('summaryTotalDoctors').textContent = doctors.length;
@@ -3387,12 +3387,16 @@ th.sortable:active {
             const tbody = document.getElementById('summaryTableBody');
             tbody.innerHTML = '';
 
-            doctors.forEach((doctor) => {
+            console.log('Doctors data:', doctors); // Відлагодження
+
+            doctors.forEach((doctor, index) => {
                 const errorCount = doctor.errors ? doctor.errors.length : 0;
+                
+                console.log(`Doctor ${index}: ${doctor.doctorName}, errors: ${errorCount}`); // Відлагодження
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td><strong>${doctor.doctorName}</strong></td>
+                    <td><strong>${doctor.doctorName || 'Невідомий лікар'}</strong></td>
                     <td style="text-align: center; font-weight: bold; color: ${errorCount > 0 ? '#e74c3c' : '#27ae60'}">${errorCount}</td>
                 `;
                 tbody.appendChild(row);
