@@ -1,0 +1,27 @@
+{
+  "name": "temp-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "generate-users": "node scripts/generateUsers.js",
+    "update-users-stats": "node scripts/updateUsersStats.js",
+    "watch-json": "node scripts/watchInputJson.js",
+    "netlify-build": "npm run generate-users && npm run build"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
+    "@netlify/plugin-nextjs": "^5.15.11",
+    "@supabase/supabase-js": "^2.108.0",
+    "bcryptjs": "^3.0.3",
+    "next": "16.2.7",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "xlsx": "^0.18.5"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  }
+}

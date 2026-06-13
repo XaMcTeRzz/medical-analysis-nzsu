@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор Розрахункових Листків (Мультиків)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --bg: #0F172A;
+            --surface: #1E293B;
+            --text: #F8FAFC;
+            --text-muted: #94A3B8;
+            --border: #334155;
+            --success: #10B981;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: var(--surface);
+            padding: 2.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            max-width: 600px;
+            width: 100%;
+            border: 1px solid var(--border);
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 1.75rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 2rem;
+            background: linear-gradient(to right, #818CF8, #C084FC);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        input[type="file"], select {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border);
+            background-color: var(--bg);
+            color: var(--text);
+            font-size: 1rem;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="file"]:focus, select:focus {
+            border-color: var(--primary);
+        }
+
+        input[type="file"]::file-selector-button {
+            background-color: var(--border);
+            color: var(--text);
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            margin-right: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        input[type="file"]::file-selector-button:hover {
+            background-color: var(--text-muted);
+            color: var(--bg);
+        }
+
+        .alert {
+            background-color: rgba(234, 179, 8, 0.1);
+            border-left: 4px solid #EAB308;
+            padding: 1rem;
+            border-radius: 0.25rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.875rem;
+            color: #FDE047;
+        }
+
+        button {
+            width: 100%;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 1rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            background-color: var(--border);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #status {
+            margin-top: 1rem;
+            text-align: center;
+            font-size: 0.875rem;
+            color: var(--success);
+            min-height: 1.25rem;
+        }
+
+        /* Loading state classes */
+        .is-loading .loading { display: inline-block; }
+        .is-loading .btn-text { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Генератор Розрахункових Листків</h1>
+
+    <div class="alert">
+        <strong>Увага!</strong> Ви можете завантажувати шаблон мультика у форматі <strong>.xls</strong> або <strong>.xlsx</strong>. <br>
+        <em>Порада:</em> Якщо при використанні .xls зникають кольори чи рамки, перезбережіть ваш шаблон у формат .xlsx через звичайний Excel.
+    </div>
+
+    <div class="form-group">
+        <label for="salaryFile">1. Файл "Зарплата таблиця" (.xlsx або .xls)</label>
+        <input type="file" id="salaryFile" accept=".xlsx,.xls">
+    </div>
+
+    <div class="form-group">
+        <label for="sheetName">Місяць (назва листа у таблиці зарплат)</label>
+        <select id="sheetName">
+            <option value="квітень">Квітень</option>
+            <option value="травень">Травень</option>
+            <option value="червень">Червень</option>
+            <option value="липень">Липень</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="templateFile">2. Шаблон Мультика (.xlsx або .xls)</label>
+        <input type="file" id="templateFile" accept=".xlsx,.xls">
+    </div>
+
+    <button id="generateBtn" onclick="processFiles()">
+        <span class="btn-text">Заповнити Мультик та Завантажити</span>
+        <div class="loading"></div>
+    </button>
+    <div id="status"></div>
+</div>
+
+<script>
+    async function processFiles() {
+        const salaryFileInput = document.getElementById('salaryFile');
+        const templateFileInput = document.getElementById('templateFile');
+        const sheetName = document.getElementById('sheetName').value;
+        const btn = document.getElementById('generateBtn');
+        const statusEl = document.getElementById('status');
+
+        if (!salaryFileInput.files.length || !templateFileInput.files.length) {
+            alert('Будь ласка, оберіть обидва файли!');
+            return;
+        }
+
+        btn.classList.add('is-loading');
+        btn.disabled = true;
+        statusEl.textContent = 'Читаємо таблицю зарплат...';
+
+        try {
+            // 1. Read Salary Table
+            const salaryFile = salaryFileInput.files[0];
+            const salaryData = await salaryFile.arrayBuffer();
+            const wbSalary = XLSX.read(salaryData, { type: 'array' });
+            
+            if (!wbSalary.Sheets[sheetName]) {
+                throw new Error(`Лист з назвою "${sheetName}" не знайдено у зарплатній таблиці!`);
+            }
+
+            const salaryJson = XLSX.utils.sheet_to_json(wbSalary.Sheets[sheetName], { header: 1 });
+            
+            const doctors = {};
+            
+            for (let i = 0; i < salaryJson.length; i++) {
+                const row = salaryJson[i];
+                if (!row || !row[1]) continue;
+                const name = String(row[1]).trim();
+                
+                if (name === 'ПІБ' || name.toLowerCase().includes('всього') || name === '' || name === 'undefined') continue;
+                
+                if (name.split(' ').length >= 2) {
+                    const docData = {
+                        name: name,
+                        vizitiKol: row[10] || '',
+                        vizitiTarif: row[11] || '',
+                        vizitiSuma: row[12] || '',
+                        vnesKol: row[13] || '',
+                        vnesTarif: row[14] || '',
+                        vnesSuma: row[15] || '',
+                        vsyaZP: row[31] || '',
+                        avans: row[37] || '',
+                        zpOklad: row[45] || '',
+                        premiya: row[41] || ''
+                    };
+                    if (docData.vsyaZP && !isNaN(docData.vsyaZP) && Number(docData.vsyaZP) !== 0) {
+                        // Keep only name parts for robust matching (e.g. "Біговщиць Софія Володимирівна")
+                        doctors[name.toLowerCase()] = docData;
+                    }
+                }
+            }
+
+            statusEl.textContent = `Знайдено лікарів у зарплатній: ${Object.keys(doctors).length}. Заповнюємо мультик...`;
+
+            // 2. Read Template
+            const templateFile = templateFileInput.files[0];
+            const templateData = await templateFile.arrayBuffer();
+            let finalTemplateData = templateData;
+
+            if (templateFile.name.toLowerCase().endsWith('.xls')) {
+                const tempWb = XLSX.read(templateData, { type: 'array' });
+                finalTemplateData = XLSX.write(tempWb, { type: 'array', bookType: 'xlsx' });
+            }
+            
+            const workbook = new ExcelJS.Workbook();
+            await workbook.xlsx.load(finalTemplateData.buffer || finalTemplateData);
+            const ws = workbook.worksheets[0];
+
+            let currentDoctor = null;
+
+            // Йдемо по всіх рядках мультика
+            ws.eachRow((row, rowNumber) => {
+                // Шукаємо ім'я лікаря в першій колонці (А або B)
+                let rowStr = '';
+                row.eachCell((cell) => {
+                    if (typeof cell.value === 'string') {
+                        rowStr += ' ' + cell.value.toLowerCase();
+                    }
+                });
+
+                // Перевіряємо, чи є в рядку ім'я когось з лікарів
+                for (const docName in doctors) {
+                    // Якщо ім'я лікаря знайдено в рядку (напр., "Біговщиць Софія Володимирівна (00064)")
+                    if (rowStr.includes(docName)) {
+                        currentDoctor = doctors[docName];
+                        break; // Знайшли лікаря для поточного блоку
+                    }
+                }
+
+                if (currentDoctor) {
+                    // Перевіряємо колонку AO (41) на наявність ключових слів
+                    const opCell = row.getCell('AO').value;
+                    if (typeof opCell === 'string') {
+                        const opText = opCell.toLowerCase();
+                        
+                        if (opText.includes('внесення')) {
+                            row.getCell('AL').value = currentDoctor.vnesKol;
+                            row.getCell('AM').value = currentDoctor.vnesTarif;
+                            row.getCell('AN').value = currentDoctor.vnesSuma;
+                        } else if (opText.includes('нараховано по візитам')) {
+                            row.getCell('AL').value = currentDoctor.vizitiKol;
+                            row.getCell('AM').value = currentDoctor.vizitiTarif;
+                            row.getCell('AN').value = currentDoctor.vizitiSuma;
+                        } else if (opText.includes('вся зарплата')) {
+                            row.getCell('AN').value = currentDoctor.vsyaZP;
+                        } else if (opText.includes('аванс')) {
+                            row.getCell('AN').value = currentDoctor.avans;
+                        } else if (opText.includes('зп від окладу') || opText.includes('зп')) {
+                            row.getCell('AN').value = currentDoctor.zpOklad;
+                        } else if (opText.includes('премія')) {
+                            row.getCell('AN').value = currentDoctor.premiya;
+                        }
+                    }
+                }
+            });
+
+            statusEl.textContent = 'Зберігаємо заповнений файл...';
+            const outBuffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([outBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            saveAs(blob, `multuk_заповнений_${sheetName}.xlsx`);
+            
+            statusEl.textContent = 'Готово! Файл завантажено.';
+
+        } catch (error) {
+            console.error(error);
+            alert(`Помилка: ${error.message}`);
+            statusEl.textContent = 'Помилка генерації.';
+        } finally {
+            btn.classList.remove('is-loading');
+            btn.disabled = false;
+        }
+    }
+</script>
+
+</body>
+</html>
